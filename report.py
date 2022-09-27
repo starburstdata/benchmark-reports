@@ -181,15 +181,19 @@ def figures(columns, rows):
 
 def add_table(columns, rows, group):
     # TODO link some (id?) columns
-    # TODO consider joining _err columns with their main columns since they'll end up having the same label anyway
     header = dict(
         values=list(label_from_name(key) for key in columns),
         align=[align_from_name(n) for n in columns],
     )
+    # TODO consider joining _err columns with their main columns since they'll end up having the same label anyway
+    values = []
+    for name in columns:
+        col_values = [str(row[name]) for row in rows]
+        values.append(col_values)
     cells = dict(
-        values=[[str(cell) for cell in col] for col in map(list, zip(*rows))],
-        format=[column_format(n, group) for n in columns],
-        align=[align_from_name(n) for n in columns],
+        values=values,
+        format=[column_format(name, group) for name in columns],
+        align=[align_from_name(name) for name in columns],
     )
     fig = go.Figure()
     fig.add_trace(go.Table(header=header, cells=cells))
@@ -218,7 +222,8 @@ def add_barchart(columns, rows, group):
     for key in metrics:
         if not key.endswith("_err"):
             continue
-        errors[label_from_name(key)] = [row[key] for row in rows]
+        # note we get the label without the _err suffix
+        errors[label_from_name(key[:-4])] = [row[key] for row in rows]
     fig = go.Figure()
     pivot_sets = set(frozenset((key, row[key]) for key in pivot_by) for row in rows)
     for pivot_set in sorted(pivot_sets):
@@ -287,7 +292,8 @@ def is_metric(name):
 def label_from_name(name):
     """Label from column name"""
     words = name.split("_")
-    if words[-1] in ("num2f", "num", "pct", "unit", "err", "label", "pivot"):
+    # Note: missing the err suffix
+    if words[-1] in ("num2f", "num", "pct", "unit", "label", "pivot"):
         words.pop()
     return " ".join(word.capitalize() for word in words)
 
@@ -299,6 +305,8 @@ def column_format(name, group):
     words = lcname.split("_")
     suffix = words.pop()
     if suffix == "num2f":
+        return ".2f"
+    if suffix == "err":
         return ".2f"
     if suffix == "pct":
         return ".2%"
