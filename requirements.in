@@ -3,6 +3,8 @@ plotly
 sqlalchemy
 trino[sqlalchemy]
 psycopg2-binary
+python-slugify
+gitpython
 
 # dev
 isort

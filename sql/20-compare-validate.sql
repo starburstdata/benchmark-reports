@@ -52,13 +52,13 @@ SELECT
   , count(*) FILTER (WHERE contains(runs.environment_ids, env.id) AND runs.status = 'ENDED' AND cardinality(runs.environment_ids) = 1) AS extra_num
   , array_to_string(array_sort(array_subtraction(
         array_union_agg(runs.environment_names) FILTER (WHERE contains(runs.environment_ids, env.id) AND runs.status = 'ENDED' AND cardinality(runs.environment_ids) > 1),
-        ARRAY[env.name])), '<br/>') AS comparable_environments_label
+        ARRAY[env.name])), E'\n') AS comparable_environments_label
   , array_to_string(array_sort(array_subtraction(
         array_union_agg(runs.properties::text[]) FILTER (WHERE NOT contains(runs.environment_ids, env.id) AND runs.status = 'ENDED'),
-        array_union_agg(runs.properties::text[]) FILTER (WHERE contains(runs.environment_ids, env.id) AND runs.status = 'ENDED'))), '<br/>') AS missing_run_properties_label
+        array_union_agg(runs.properties::text[]) FILTER (WHERE contains(runs.environment_ids, env.id) AND runs.status = 'ENDED'))), E'\n') AS missing_run_properties_label
   , array_to_string(array_sort(array_subtraction(
         array_union_agg(runs.properties::text[]) FILTER (WHERE contains(runs.environment_ids, env.id) AND runs.status = 'ENDED' AND cardinality(runs.environment_ids) = 1),
-        array_union_agg(runs.properties::text[]) FILTER (WHERE NOT contains(runs.environment_ids, env.id) AND runs.status = 'ENDED'))), '<br/>') AS extra_run_properties_label
+        array_union_agg(runs.properties::text[]) FILTER (WHERE NOT contains(runs.environment_ids, env.id) AND runs.status = 'ENDED'))), E'\n') AS extra_run_properties_label
 FROM environments env
 CROSS JOIN unique_runs runs
 WHERE env.id = ANY(:env_ids)

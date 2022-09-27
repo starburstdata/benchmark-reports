@@ -63,7 +63,7 @@ environments AS (
 )
 SELECT
     env.name AS environment
-  , array_to_string(env.attributes, E'<br/>') AS attributes_label
+  , array_to_string(env.attributes, E'\n') AS attributes_label
   , runs.sequence_id AS sequence_id
   , array_agg(DISTINCT runs.status) AS statuses_label
   , count(DISTINCT runs.id) AS runs_num

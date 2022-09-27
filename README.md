@@ -54,3 +54,11 @@ Label columns contained additional information and are not dispalyed in bar char
 
 Dimension columns uniquely identify a single metric value, so on bar charts they're joined with a comma.
 If a dimension column name ends with `_pivot`, it'll be used to additionally group metrics on bar charts.
+
+## Development
+
+To refresh the list of dependencies:
+
+```bash
+pip-compile requirements.in
+```

@@ -10,7 +10,11 @@ import logging
 import sys
 from os.path import abspath
 from dataclasses import dataclass, field
+from functools import cache
+import csv
 
+import git
+from slugify import slugify
 import plotly.graph_objects as go
 from sqlalchemy import create_engine
 from sqlalchemy.schema import MetaData, Table
@@ -71,7 +75,7 @@ def print_report(dburl, sql, environments, output):
 
     sql_glob = glob.escape(sql) + "/??-*.sql"
     logging.info("Loading queries from %s", sql_glob)
-    input_files = [abspath(f) for f in sorted(glob.glob(sql_glob))]
+    input_files = [f for f in sorted(glob.glob(sql_glob))]
     logging.debug("Query files: %s", input_files)
 
     logging.debug("Connecting to the database")
@@ -93,15 +97,28 @@ def print_report(dburl, sql, environments, output):
     logging.debug("Printing reports")
     # TODO use a template engine like Jinja2, add intro with links to data model, explain why some metrics are selected (duration, mem, total cpu)
     output.write('<html><head><meta charset="utf-8" /></head><body>')
+    output.write(
+        '<p><a href="https://github.com/trinodb/benchto/blob/master/docs/data-model/README.md">Benchto Data Model</a>'
+    )
+    output.write(f"<h2>Table of Contents</h2>")
+    output.write(f"<ol>")
+    for entry in reports:
+        if not entry.figures:
+            # some reports might not create a figure
+            continue
+        output.write(f'<li><a href="#{entry.slug}">{entry.title}</a></li>')
     include_plotlyjs = "cdn"
     for entry in reports:
         if not entry.figures:
             # some reports might not create a figure
             continue
 
-        # TODO add a Table-of-Contents (TOC) to navigate easily between reports
-        output.write(f"<h2>{entry.title}</h2>")
+        output.write(f"</ol>")
+        output.write(f'<h2 id="{entry.slug}">{entry.title}</h2>')
         output.write(f"<p>{entry.desc}</p>")
+        output.write(
+            f'<p><a href="{entry.file_url}">Query</a>, results: <a href="{entry.results_file}">{entry.results_file}</a></p>'
+        )
         for fig in entry.figures:
             output.write(
                 fig.to_html(full_html=False, include_plotlyjs=include_plotlyjs)
@@ -119,10 +136,27 @@ class Report:
     """Report of performance test results."""
 
     file: str
+    file_url: str = field(init=False)
+    results_file: str = field(init=False)
     query: str
     title: str
+    slug: str = field(init=False)
     desc: str
     figures: list[go.Figure] = field(default_factory=list)
+
+    def __post_init__(self):
+        self.file_url = f"https://github.com/starburstdata/benchmark-reports/blob/{sha()}/{self.file}"
+        self.slug = slugify(self.title)
+        self.results_file = self.slug + ".csv"
+
+
+@cache
+def sha():
+    try:
+        repo = git.Repo(search_parent_directories=True)
+    except InvalidGitRepositoryError:
+        return "master"
+    return repo.head.object.hexsha
 
 
 def read_query(file):
@@ -153,6 +187,12 @@ def add_figures(reports, connection, env_ids):
             continue
 
         rows = result.fetchall()
+        # write results to a csv file
+        with open(entry.results_file, "w") as f:
+            writer = csv.writer(f)
+            writer.writerow([name for name in result.keys()])
+            writer.writerows(rows)
+        # create figures
         entry.figures = figures(result.keys(), rows)
     return reports
 
@@ -185,7 +225,6 @@ def add_table(columns, rows, group):
         values=list(label_from_name(key) for key in columns),
         align=[align_from_name(n) for n in columns],
     )
-    # TODO consider joining _err columns with their main columns since they'll end up having the same label anyway
     values = []
     for name in columns:
         col_values = [str(row[name]) for row in rows]
@@ -238,7 +277,10 @@ def add_barchart(columns, rows, group):
                 )
                 + " "
             )
-        text = ["</br>".join(f"{label_from_name(key)}: {row[key]}" for key in labels) for row in pivot_rows]
+        text = [
+            "</br>".join(f"{label_from_name(key)}: {row[key]}" for key in labels)
+            for row in pivot_rows
+        ]
         for metric in metrics:
             if metric.endswith("_err"):
                 continue

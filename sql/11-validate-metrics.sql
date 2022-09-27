@@ -58,7 +58,7 @@ metrics AS (
 )
 SELECT
     m.name AS metric
-  , array_to_string(m.attributes, E'<br/>') AS attributes
+  , array_to_string(m.attributes, E'\n') AS attributes
   , sum(s.num_executions) AS executions_num
   , sum(s.num_invalid_executions) AS invalid_executions_num
   , sum(s.num_measurements) AS measurements_num

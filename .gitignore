@@ -132,3 +132,4 @@ dmypy.json
 /runs/
 /envs/
 /*.html
+/*.csv
