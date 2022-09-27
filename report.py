@@ -208,7 +208,7 @@ def add_barchart(columns, rows, group):
     dimensions = [key for key in columns if is_dimension(key)]
     pivot_by = [key for key in columns if is_pivot(key)]
     metrics = [key for key in columns if is_metric(key)]
-    # TODO jwas put all label columns in hovertext
+    labels = [key for key in columns if is_label(key)]
     if len(rows) < 2:
         # TODO this should be used to generate groups/subplots
         logging.warning("Skipping group %s with %d rows", group, len(rows))
@@ -233,11 +233,12 @@ def add_barchart(columns, rows, group):
             pivot_rows = [row for row in rows if row_in_group(row, pivot_set)]
             label_prefix = (
                 ", ".join(
-                    f"{label_from_name(name)}={value}"
+                    f"{label_from_name(name)}: {value}"
                     for name, value in sorted(pivot_set)
                 )
                 + " "
             )
+        text = ["</br>".join(f"{label_from_name(key)}: {row[key]}" for key in labels) for row in pivot_rows]
         for metric in metrics:
             if metric.endswith("_err"):
                 continue
@@ -251,6 +252,7 @@ def add_barchart(columns, rows, group):
                     x=x,
                     y=[row[metric] for row in pivot_rows],
                     error_y=error,
+                    hovertext=text,
                 )
             )
     # TODO using last metric as tickformat, is this correct?
@@ -287,6 +289,12 @@ def is_metric(name):
     suffix = name.split("_").pop()
     # Note: missing the label suffix
     return suffix in ("num2f", "num", "pct", "unit", "err")
+
+
+def is_label(name):
+    """Is label based on the column name suffix"""
+    suffix = name.split("_").pop()
+    return suffix in ("label")
 
 
 def label_from_name(name):
