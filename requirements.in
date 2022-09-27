@@ -1,0 +1,9 @@
+# runtime
+plotly
+sqlalchemy
+trino[sqlalchemy]
+psycopg2-binary
+
+# dev
+isort
+pip-tools
