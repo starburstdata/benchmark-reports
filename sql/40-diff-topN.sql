@@ -32,6 +32,7 @@ attributes AS (
     LEFT JOIN variables vars ON vars.benchmark_run_id = runs.id
     LEFT JOIN benchmark_runs_attributes q ON q.benchmark_run_id = runs.id AND q.name = 'query-names'
     WHERE runs.status = 'ENDED'
+    AND runs.environment_id = ANY(:env_ids)
 )
 , measurements AS (
     SELECT

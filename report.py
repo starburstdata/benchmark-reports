@@ -81,7 +81,7 @@ def print_report(dburl, sql, environments, output):
     logging.info("Resolving environments")
     params = {f"e{i}": name for i, name in enumerate(environments)}
     constraints = [f"name LIKE :{key}" for key in params.keys()]
-    query = f"SELECT id, name FROM environments WHERE {' AND '.join(constraints)} ORDER BY name"
+    query = f"SELECT id, name FROM environments WHERE {' OR '.join(constraints)} ORDER BY name"
     rows = connection.execute(text(query), params).fetchall()
     logging.info("Report for environment names: %s", [r["name"] for r in rows])
     env_ids = [r["id"] for r in rows]

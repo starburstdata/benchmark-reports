@@ -39,6 +39,7 @@ metrics AS (
     JOIN executions ex ON ex.id = em.execution_id
     JOIN benchmark_runs runs ON runs.id = ex.benchmark_run_id
     JOIN measurements m ON m.id = em.measurement_id
+    WHERE runs.environment_id = ANY(:env_ids)
     GROUP BY 1, 2, 3
 )
 , execution_stats AS (

@@ -27,7 +27,7 @@ attributes AS (
     FROM benchmark_runs runs
     LEFT JOIN attributes attrs ON attrs.benchmark_run_id = runs.id
     LEFT JOIN variables vars ON vars.benchmark_run_id = runs.id
-    WHERE runs.status = 'ENDED'
+    WHERE runs.status = 'ENDED' AND runs.environment_id = ANY(:env_ids)
 )
 , measurements AS (
     SELECT
@@ -54,6 +54,7 @@ attributes AS (
     JOIN executions ex ON ex.id = em.execution_id
     JOIN benchmark_runs runs ON runs.id = ex.benchmark_run_id
     JOIN measurements m ON m.id = em.measurement_id
+    WHERE runs.environment_id = ANY(:env_ids)
     GROUP BY 1, 2, 3
 )
 , run_pairs AS (

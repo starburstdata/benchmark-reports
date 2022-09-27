@@ -18,7 +18,7 @@ open report.html
 
 > Note: don't specify the password in the DB URL option. Instead, configure it in the `~/.pgpass` file.
 
-To generate the report only for selected Benchto environments, specify their names in the `--environments` option.
+To generate the report only for selected Benchto environments, specify their names in the `--environments` option. To select all environments for a particular Trino version, use SQL wildcards, for example: `-e '%393%,%394%'`.
 
 ## Usage
 

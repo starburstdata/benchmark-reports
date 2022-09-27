@@ -28,6 +28,7 @@ attributes AS (
     FROM benchmark_runs runs
     LEFT JOIN attributes attrs ON attrs.benchmark_run_id = runs.id
     LEFT JOIN variables vars ON vars.benchmark_run_id = runs.id
+    WHERE runs.environment_id = ANY(:env_ids)
 )
 , unique_runs AS (
     SELECT
@@ -60,6 +61,7 @@ SELECT
         array_union_agg(runs.properties::text[]) FILTER (WHERE NOT contains(runs.environment_ids, env.id) AND runs.status = 'ENDED'))), '<br/>') AS extra_run_properties_label
 FROM environments env
 CROSS JOIN unique_runs runs
+WHERE env.id = ANY(:env_ids)
 GROUP BY env.name
 ORDER BY env.name
 ;

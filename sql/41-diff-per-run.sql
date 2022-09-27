@@ -31,6 +31,7 @@ attributes AS (
     LEFT JOIN variables vars ON vars.benchmark_run_id = runs.id
     LEFT JOIN benchmark_runs_attributes q ON q.benchmark_run_id = runs.id AND q.name = 'query-names'
     WHERE runs.status = 'ENDED'
+    AND runs.environment_id = ANY(:env_ids)
 )
 , common_properties AS (
     SELECT
@@ -49,7 +50,7 @@ attributes AS (
               , a.benchmark_run_id
             FROM benchmark_runs_attributes a
             JOIN benchmark_runs r ON r.id = a.benchmark_run_id
-            WHERE r.status = 'ENDED'
+            WHERE r.status = 'ENDED' AND r.environment_id = ANY(:env_ids)
             UNION ALL
             SELECT
                 v.name
@@ -57,7 +58,7 @@ attributes AS (
               , v.benchmark_run_id
             FROM benchmark_runs_variables v
             JOIN benchmark_runs r ON r.id = v.benchmark_run_id
-            WHERE r.status = 'ENDED'
+            WHERE r.status = 'ENDED' AND r.environment_id = ANY(:env_ids)
         ) a
         GROUP BY name, value
     ) a

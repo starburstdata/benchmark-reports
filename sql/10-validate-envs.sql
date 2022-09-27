@@ -79,5 +79,6 @@ SELECT
 FROM environments env
 LEFT JOIN benchmark_runs runs ON runs.environment_id = env.id
 LEFT JOIN execution_stats s ON s.run_id = runs.id
+WHERE env.id = ANY(:env_ids)
 GROUP BY 1, 2, 3
 ;
