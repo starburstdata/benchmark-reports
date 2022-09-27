@@ -226,7 +226,13 @@ def add_barchart(columns, rows, group):
         label_prefix = ""
         if pivot_set:
             pivot_rows = [row for row in rows if row_in_group(row, pivot_set)]
-            label_prefix = ", ".join(f'{label_from_name(name)}={value}' for name, value in sorted(pivot_set)) + " "
+            label_prefix = (
+                ", ".join(
+                    f"{label_from_name(name)}={value}"
+                    for name, value in sorted(pivot_set)
+                )
+                + " "
+            )
         for metric in metrics:
             if metric.endswith("_err"):
                 continue
