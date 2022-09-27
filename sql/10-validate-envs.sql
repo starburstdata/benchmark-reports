@@ -63,9 +63,9 @@ environments AS (
 )
 SELECT
     env.name AS environment
-  , array_to_string(env.attributes, E'<br/>') AS attributes
+  , array_to_string(env.attributes, E'<br/>') AS attributes_label
   , runs.sequence_id AS sequence_id
-  , array_agg(DISTINCT runs.status) AS statuses
+  , array_agg(DISTINCT runs.status) AS statuses_label
   , count(DISTINCT runs.id) AS runs_num
   , sum(s.num_executions) AS executions_num
   , sum(s.num_invalid_executions) AS invalid_executions_num

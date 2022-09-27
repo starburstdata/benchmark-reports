@@ -99,6 +99,7 @@ def print_report(dburl, sql, environments, output):
             # some reports might not create a figure
             continue
 
+        # TODO add a Table-of-Contents (TOC) to navigate easily between reports
         output.write(f"<h2>{entry.title}</h2>")
         output.write(f"<p>{entry.desc}</p>")
         for fig in entry.figures:
@@ -159,87 +160,94 @@ def add_figures(reports, connection, env_ids):
 def figures(columns, rows):
     """Figure from data rows"""
 
-    return add_table(columns, rows) + add_barchart(columns, rows)
-
-
-def add_table(columns, rows):
-    # TODO link some (id?) columns
-    # TODO jwas _unit columns are not formatted, render tables together with barcharts to use same grouping (move grouping outside)
-    header = dict(
-        values=list(label_from_name(key) for key in columns),
-        align=[align_from_name(n) for n in columns],
-    )
-    cells = dict(
-        values=[[str(cell) for cell in col] for col in map(list, zip(*rows))],
-        format=[column_format(n, list()) for n in columns],
-        align=[align_from_name(n) for n in columns],
-    )
-    fig = go.Figure()
-    fig.add_trace(go.Table(header=header, cells=cells))
-    return [fig]
-
-
-def add_barchart(columns, rows):
     result = []
     # TODO handle different scales - split into subplots
     # TODO if there are too many X values, split last ones into subplots until threshold
     group_by = []
-    groups = set()
+    groups = set(frozenset(("", "")))
     if "unit" in columns:
         group_by = ["unit"]
         # groups are sets of tuples, because dicts are not hashable
         groups = set(frozenset((key, row[key]) for key in group_by) for row in rows)
 
     for group in sorted(groups):
+        logging.debug("Rendering group %s", group)
         names = [name for name in columns if name not in group_by]
-        dimensions = [key for key in names if is_dimension(key)]
-        pivot_by = [key for key in names if is_pivot(key)]
-        metrics = [key for key in names if is_metric(key)]
-        # TODO jwas put all label columns in hovertext
         group_rows = [row for row in rows if row_in_group(row, group)]
-        if len(group_rows) < 2:
-            # TODO this should be used to generate groups/subplots
-            logging.warning("Skipping group %s with %d rows", group, len(group_rows))
+        result += add_table(names, group_rows, group)
+        result += add_barchart(names, group_rows, group)
+    return result
+
+
+def add_table(columns, rows, group):
+    # TODO link some (id?) columns
+    # TODO consider joining _err columns with their main columns since they'll end up having the same label anyway
+    header = dict(
+        values=list(label_from_name(key) for key in columns),
+        align=[align_from_name(n) for n in columns],
+    )
+    cells = dict(
+        values=[[str(cell) for cell in col] for col in map(list, zip(*rows))],
+        format=[column_format(n, group) for n in columns],
+        align=[align_from_name(n) for n in columns],
+    )
+    fig = go.Figure()
+    fig.add_trace(go.Table(header=header, cells=cells))
+    fig.update_layout(
+        height=800,
+    )
+    return [fig]
+
+
+def add_barchart(columns, rows, group):
+    result = []
+    dimensions = [key for key in columns if is_dimension(key)]
+    pivot_by = [key for key in columns if is_pivot(key)]
+    metrics = [key for key in columns if is_metric(key)]
+    # TODO jwas put all label columns in hovertext
+    if len(rows) < 2:
+        # TODO this should be used to generate groups/subplots
+        logging.warning("Skipping group %s with %d rows", group, len(rows))
+        return result
+    x = []
+    for row in rows:
+        values = [str(row[key]) for key in dimensions]
+        x.append(", ".join(values))
+    # detect and create errors series
+    errors = {}
+    for key in metrics:
+        if not key.endswith("_err"):
             continue
-        x = []
-        for row in group_rows:
-            values = [str(row[key]) for key in dimensions]
-            x.append(", ".join(values))
-        # detect and create errors series
-        errors = {}
-        for key in metrics:
-            if not key.endswith("_err"):
+        errors[label_from_name(key)] = [row[key] for row in rows]
+    fig = go.Figure()
+    pivot_sets = set(frozenset((key, row[key]) for key in pivot_by) for row in rows)
+    for pivot_set in sorted(pivot_sets):
+        pivot_rows = rows
+        label_prefix = ""
+        if pivot_set:
+            pivot_rows = [row for row in rows if row_in_group(row, pivot_set)]
+            label_prefix = ", ".join(f'{label_from_name(name)}={value}' for name, value in sorted(pivot_set)) + " "
+        for metric in metrics:
+            if metric.endswith("_err"):
                 continue
-            errors[label_from_name(key)] = [row[key] for row in group_rows]
-        fig = go.Figure()
-        pivot_sets = set(frozenset((key, row[key]) for key in pivot_by) for row in rows)
-        for pivot_set in sorted(pivot_sets):
-            pivot_rows = group_rows
-            label_prefix = ""
-            if pivot_set:
-                pivot_rows = [row for row in group_rows if row_in_group(row, pivot_set)]
-                label_prefix = ", ".join(f'{label_from_name(name)}={value}' for name, value in sorted(pivot_set)) + " "
-            for metric in metrics:
-                if metric.endswith("_err"):
-                    continue
-                label = label_from_name(metric)
-                error = None
-                if label in errors:
-                    error = dict(type="data", array=errors.get(label))
-                fig.add_trace(
-                    go.Bar(
-                        name=label_prefix + label_from_name(metric),
-                        x=x,
-                        y=[row[metric] for row in pivot_rows],
-                        error_y=error,
-                    )
+            label = label_from_name(metric)
+            error = None
+            if label in errors:
+                error = dict(type="data", array=errors.get(label))
+            fig.add_trace(
+                go.Bar(
+                    name=label_prefix + label_from_name(metric),
+                    x=x,
+                    y=[row[metric] for row in pivot_rows],
+                    error_y=error,
                 )
-        # TODO using last metric as tickformat, is this correct?
-        fig.update_layout(
-            yaxis_tickformat=column_format(metric, group),
-            barmode="group",
-        )
-        result.append(fig)
+            )
+    # TODO using last metric as tickformat, is this correct?
+    fig.update_layout(
+        yaxis_tickformat=column_format(metric, group),
+        barmode="group",
+    )
+    result.append(fig)
     return result
 
 
