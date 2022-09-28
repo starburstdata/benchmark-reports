@@ -4,20 +4,25 @@ set -euo pipefail
 
 usage() {
     cat <<EOF >&2
-Usage: $0 [-h] [-x] -r <VERSIONS>
+Usage: $0 [-h] [-x] -r <VERSIONS> [-t <TRINO_SRC_DIR>]
 Tests one or more Trino versions
 
 -h       Display help
 -r       Test the specified Trino versions; specify a version number, a commit, or SNAPSHOT to build and test currently checked out commit
+-t       Path to the Trino sources directory; where the standard benchmarks are read from
 EOF
 }
 
 DEBUG=false
+TRINO_DIR=$(pwd)
 
-while getopts ":r:xh" OPTKEY; do
+while getopts ":r:t:xh" OPTKEY; do
     case "${OPTKEY}" in
         r)
             IFS=, read -ra VERSIONS <<<"$OPTARG"
+            ;;
+        t)
+            TRINO_DIR=$(realpath "$OPTARG")
             ;;
         x)
             DEBUG=true
@@ -55,10 +60,10 @@ if [ "${#VERSIONS[@]}" -eq 0 ]; then
 fi
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-cd "$SCRIPT_DIR/.." || exit 1
+cd "$SCRIPT_DIR" || exit 1
 
 prefix=benchto-
-local_repo=$(./mvnw -B help:evaluate -Dexpression=settings.localRepository -q -DforceStdout)
+local_repo=$(cd "$TRINO_DIR" && ./mvnw -B help:evaluate -Dexpression=settings.localRepository -q -DforceStdout)
 git_repo=https://github.com/trinodb/trino.git
 
 function run() {
@@ -118,7 +123,7 @@ run postgres \
 sleep 2
 
 benchto_version=0.20-SNAPSHOT
-benchto_image=prestodev/benchto-service
+benchto_image=trinodev/benchto-service
 benchto_host=localhost
 benchto_port=8081
 benchto_url=$benchto_host:$benchto_port
@@ -186,7 +191,7 @@ for TRINO_VERSION in "${VERSIONS[@]}"; do
         if [ "${TRINO_VERSION}" != SNAPSHOT ]; then
             workdir=$RES_DIR/trino
             rm -rf "${workdir}"
-            time git clone "${git_repo}" "${workdir}" --reference-if-able "${SCRIPT_DIR}/.." --dissociate
+            time git clone "${git_repo}" "${workdir}" --reference-if-able "${TRINO_DIR}" --dissociate
             git -C "${workdir}" checkout -q "${TRINO_VERSION}"
         fi
         TRINO_SRC_VERSION=$(cd "$workdir" && ./mvnw --quiet help:evaluate -Dexpression=project.version -DforceStdout)
@@ -270,7 +275,7 @@ JSON
     echo "Generating test data"
     # sf10 will take about 5 minutes and will cause the benchto-hms image to grow to about 3GB
     # benchmarking a single environment using sf10 should take up to 30 minutes
-    testing/trino-benchto-benchmarks/generate_schemas/generate-tpch.py --factors sf10 --formats orc |
+    "$TRINO_DIR"/testing/trino-benchto-benchmarks/generate_schemas/generate-tpch.py --factors sf10 --formats orc |
         docker run -i \
             --link ${prefix}trino \
             "$trino_image" \
@@ -337,8 +342,8 @@ YAML
         JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home java -Xmx1g \
             -jar "$local_repo/io/trino/benchto/benchto-driver/$benchto_version/benchto-driver-$benchto_version.jar" \
             --profiles.directory "$RES_DIR" \
-            --sql "$SCRIPT_DIR"/../testing/trino-benchto-benchmarks/src/main/resources/sql \
-            --benchmarks "$SCRIPT_DIR"/../testing/trino-benchto-benchmarks/src/main/resources/benchmarks \
+            --sql "$TRINO_DIR"/testing/trino-benchto-benchmarks/src/main/resources/sql \
+            --benchmarks "$TRINO_DIR"/testing/trino-benchto-benchmarks/src/main/resources/benchmarks \
             --activeBenchmarks=presto/tpch \
             --overrides "$RES_DIR/overrides.yaml" \
             --frequencyCheckEnabled false
@@ -346,7 +351,5 @@ YAML
 
     docker rm --force ${prefix}trino
 done
-
-./smoketest/report.sh
 
 cleanup
