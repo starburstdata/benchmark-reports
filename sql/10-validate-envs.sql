@@ -15,6 +15,20 @@ environments AS (
     LEFT JOIN environment_attributes a ON a.environment_id = env.id AND a.name NOT IN ('startup_logs')
     GROUP BY 1, 2
 )
+, runs AS (
+    SELECT
+        runs.id
+      , runs.environment_id
+      , runs.sequence_id
+      , runs.status
+      -- extract this one selected attribute because it's best as describing the whole run, even if it's not unique
+      , regexp_replace(q.value, '/[^/]+$', '') AS benchmark_name
+      , regexp_replace(q.value, '^.*/([^/]*?)(\.[^/.]+)?$', '\1') AS query_name
+      , q.value AS full_query_name
+    FROM benchmark_runs runs
+    LEFT JOIN benchmark_runs_attributes q ON q.benchmark_run_id = runs.id AND q.name = 'query-names'
+    AND runs.environment_id = ANY(:env_ids)
+)
 , measurements AS (
     SELECT
         v.id
@@ -64,18 +78,17 @@ SELECT
   , array_to_string(env.attributes, E'\n') AS attributes_label
   , runs.sequence_id AS sequence_id
   , array_agg(DISTINCT runs.status) AS statuses_label
+  , count(DISTINCT runs.benchmark_name) AS benchmarks_num
+  , count(DISTINCT runs.full_query_name) AS queries_num
   , count(DISTINCT runs.id) AS runs_num
   , sum(s.num_executions) AS executions_num
   , sum(s.num_invalid_executions) AS invalid_executions_num
   , sum(s.num_measurements) AS measurements_num
   , sum(s.num_outliers) AS outliers_num
   , sum(s.num_driver_outliers) AS driver_outliers_num
-  -- TODO use this in Trino
-  -- , array_sort(array_distinct(flatten(array_agg(s.names_outliers)))) AS names_outliers
-  -- , array_sort(array_distinct(flatten(array_agg(s.names_all)))) AS names_ok
   , array_union_agg(s.names_outliers) AS metrics_with_outliers_label
 FROM environments env
-LEFT JOIN benchmark_runs runs ON runs.environment_id = env.id
+LEFT JOIN runs ON runs.environment_id = env.id
 LEFT JOIN execution_stats s ON s.run_id = runs.id
 WHERE env.id = ANY(:env_ids)
 GROUP BY 1, 2, 3
