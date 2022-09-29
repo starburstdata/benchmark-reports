@@ -1,5 +1,6 @@
 -- Top 5 runs
--- For every metric scope, find top 5 runs with same properties but from different environments with mean differences
+-- For the `duration`, `totalCpuTime` and `peakTotalMemoryReservation` metrics, find top 5 runs
+-- with same properties but from different environments with mean differences
 -- greater than the standard deviation of the other metric and 5%.
 -- There should be relatively few results with low difference percentage.
 WITH
@@ -103,11 +104,12 @@ attributes AS (
     WHERE
     env_left.name < env_right.name
     AND (ex_left.mean NOT BETWEEN ex_right.low AND ex_right.high OR ex_right.mean NOT BETWEEN ex_left.low AND ex_left.high)
+    AND ex_left.name IN ('duration', 'totalCpuTime', 'peakTotalMemoryReservation')
 )
 , diffs_ranked AS (
     SELECT
         *
-      , row_number() OVER (PARTITION BY metric_scope ORDER BY diff_pct DESC, left_env_name, right_env_name, left_run_id, right_run_id, query_name, metric) AS rownum
+      , row_number() OVER (ORDER BY diff_pct DESC, left_env_name, right_env_name, left_run_id, right_run_id, query_name, metric) AS rownum
     FROM diffs
 )
 SELECT
@@ -133,5 +135,5 @@ SELECT
   , format('[%1$s](runs/%1$s.md)', right_run_id) AS right_run_id_label
 FROM diffs_ranked
 WHERE rownum < 6
-ORDER BY metric_scope, rownum
+ORDER BY metric, rownum
 ;
