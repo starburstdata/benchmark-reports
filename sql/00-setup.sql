@@ -57,7 +57,7 @@ $$
     -- trim leading @ in case IntervalStyle is set to postgres_verbose
     WHEN 'MILLISECONDS' THEN ltrim(cast(value * interval '1 millisecond' AS varchar), '@ ')
     WHEN 'BYTES' THEN pg_size_pretty(round(value::numeric, 2))
-    WHEN 'PERCENT' THEN cast(value AS decimal(5,2)) || ' %'
+    WHEN 'PERCENT' THEN cast(value AS decimal(18,2)) || ' %'
     WHEN 'QUERY_PER_SECOND' THEN round(value::numeric, 2) || ' qps'
     ELSE value::varchar
   END
@@ -74,5 +74,5 @@ $$
     WHEN value BETWEEN 0 AND -2 THEN '▾'
     WHEN value BETWEEN -2 AND -5 THEN '▽'
     WHEN value < -5 THEN '▼'
-  END || cast(value AS decimal(5,2))
+  END || cast(value AS decimal(18,2))
 $$ LANGUAGE SQL;

@@ -32,14 +32,11 @@ attributes AS (
 , measurements AS (
     SELECT
         v.id
-      , m.name
-      , m.unit
+      , v.name
+      , v.unit
       , v.value
-      , array_agg(row(a.name, a.value) ORDER BY a.name) AS attributes
     FROM measurements v
-    JOIN metrics m ON m.id = v.metric_id
-    JOIN metric_attributes a ON m.id = a.metric_id
-    GROUP BY v.id, m.name, m.unit, v.value
+    GROUP BY v.id, v.name, v.unit, v.value
 )
 , execution_devs AS (
     SELECT

@@ -37,17 +37,15 @@ attributes AS (
 , measurements AS (
     SELECT
         v.id
-      , m.id AS metric_id
-      , m.name
-      , m.unit
+      , v.name AS metric_id
+      , substr(v.name, strpos(v.name, '-') + 1) AS name
+      , v.unit
       , v.value
-      , min(a.value) FILTER (WHERE a.name = 'scope') AS scope
-      , array_agg(row(a.name, a.value) ORDER BY a.name) AS attributes
+      -- scope can be: prestoQuery, cluster, or driver if there's no prefix
+      , CASE WHEN v.name LIKE '%-%' THEN split_part(v.name, '-', 1) ELSE 'driver' END AS scope
     -- TODO exclude some metrics that are expected to have lots of differences, like peakTotalMemoryReservation; or deliberately only include duration?
     FROM measurements v
-    JOIN metrics m ON m.id = v.metric_id
-    JOIN metric_attributes a ON m.id = a.metric_id
-    GROUP BY v.id, m.id, m.name, m.unit, v.value
+    GROUP BY v.id, v.name, v.unit, v.value
 )
 , execution_devs AS (
     SELECT

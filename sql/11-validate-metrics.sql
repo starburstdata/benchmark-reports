@@ -4,25 +4,13 @@
 WITH
 metrics AS (
     SELECT
-        m.id
-      , m.name
+        m.name AS id
+      , substr(m.name, strpos(m.name, '-') + 1) AS name
       , m.unit
-      , min(a.value) FILTER (WHERE a.name = 'scope') AS scope
-      , array_agg(a.name || '=' || a.value ORDER BY a.name) AS attributes
-    FROM metrics m
-    JOIN metric_attributes a ON a.metric_id = m.id
-    GROUP BY m.id, m.name, m.unit
-)
-, measurements AS (
-    SELECT
-        v.id
-      , v.metric_id
-      , m.name
-      , m.unit
-      , v.value
-      , m.scope
-    FROM measurements v
-    JOIN metrics m ON m.id = v.metric_id
+      -- scope can be: prestoQuery, cluster, or driver if there's no prefix
+      , CASE WHEN m.name LIKE '%-%' THEN split_part(m.name, '-', 1) ELSE 'driver' END AS scope
+    FROM measurements m
+    GROUP BY 1, 2, 3
 )
 , execution_devs AS (
     SELECT
@@ -44,12 +32,12 @@ metrics AS (
 )
 , execution_stats AS (
     SELECT
-        m.metric_id
+        m.name AS metric_id
       , count(DISTINCT ex.id) AS num_executions
       , count(DISTINCT ex.id) FILTER (WHERE m.value NOT BETWEEN devs.low AND devs.high) AS num_invalid_executions
       , count(*) AS num_measurements
       , count(*) FILTER (WHERE m.value NOT BETWEEN devs.low AND devs.high) AS num_outliers
-      , count(*) FILTER (WHERE m.scope = 'driver' AND m.value NOT BETWEEN devs.low AND devs.high) AS num_driver_outliers
+      , count(*) FILTER (WHERE m.name NOT LIKE '%\_%' AND m.value NOT BETWEEN devs.low AND devs.high) AS num_driver_outliers
     FROM execution_devs devs
     JOIN executions ex ON ex.benchmark_run_id = devs.run_id
     JOIN execution_measurements em ON em.execution_id = ex.id
@@ -58,7 +46,6 @@ metrics AS (
 )
 SELECT
     m.name AS metric
-  , array_to_string(m.attributes, E'\n') AS attributes
   , sum(s.num_executions) AS executions_num
   , sum(s.num_invalid_executions) AS invalid_executions_num
   , sum(s.num_measurements) AS measurements_num
@@ -66,5 +53,5 @@ SELECT
   , sum(s.num_driver_outliers) AS driver_outliers_num
 FROM metrics m
 LEFT JOIN execution_stats s ON s.metric_id = m.id
-GROUP BY 1, 2
+GROUP BY 1
 ;
