@@ -24,3 +24,8 @@ jobs:
       - name: Test
         run: |
           ./report.py -t
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: test results
+          path: testdata/*.html

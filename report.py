@@ -415,16 +415,19 @@ class TestReport(unittest.TestCase):
             url = make_url(postgres.get_connection_url())
             engine = create_engine(url.set(database="benchto"))
 
-            with open("testdata/report.html", "r") as f:
+            with open("testdata/expected.html", "r") as f:
                 expected = f.read()
 
             output = io.StringIO()
             print_report(engine.connect(), "sql", "%", output)
+            actual = output.getvalue()
             # only check the length, because reports contain random UUIDs, this is enough for a smoke test
             try:
-                self.assertEqual(len(output.getvalue()), len(expected))
+                self.assertEqual(len(actual), len(expected))
             except AssertionError:
-                self.assertEqual(output.getvalue(), expected)
+                with open("testdata/actual.html", "w") as f:
+                    f.write(actual)
+                self.assertEqual(actual, expected)
             output.close()
 
     def restore(self, url, filename):
