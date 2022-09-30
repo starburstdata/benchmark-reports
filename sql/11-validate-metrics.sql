@@ -54,4 +54,5 @@ SELECT
 FROM metrics m
 LEFT JOIN execution_stats s ON s.metric_id = m.id
 GROUP BY 1
+ORDER BY 1
 ;

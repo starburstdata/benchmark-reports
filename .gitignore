@@ -133,3 +133,4 @@ dmypy.json
 /envs/
 /*.html
 /*.csv
+/testdata/actual.html
