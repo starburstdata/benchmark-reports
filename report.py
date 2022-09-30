@@ -421,7 +421,10 @@ class TestReport(unittest.TestCase):
             output = io.StringIO()
             print_report(engine.connect(), "sql", "%", output)
             # only check the length, because reports contain random UUIDs, this is enough for a smoke test
-            self.assertEqual(len(output.getvalue()), len(expected))
+            try:
+                self.assertEqual(len(output.getvalue()), len(expected))
+            except AssertionError:
+                self.assertEqual(output.getvalue(), expected)
             output.close()
 
     def restore(self, url, filename):
