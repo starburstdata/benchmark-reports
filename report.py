@@ -238,6 +238,7 @@ def add_table(columns, rows, group):
     fig.add_trace(go.Table(header=header, cells=cells))
     fig.update_layout(
         height=800,
+        title=dict(text=", ".join(f'{key}: {value}' for key, value in group)),
     )
     return [fig]
 
@@ -248,7 +249,7 @@ def add_barchart(columns, rows, group):
     pivot_by = [key for key in columns if is_pivot(key)]
     metrics = [key for key in columns if is_metric(key)]
     labels = [key for key in columns if is_label(key)]
-    if len(rows) < 2:
+    if group == frozenset([("unit", None)]):
         # TODO this should be used to generate groups/subplots
         logging.warning("Skipping group %s with %d rows", group, len(rows))
         return result
@@ -301,6 +302,7 @@ def add_barchart(columns, rows, group):
     fig.update_layout(
         yaxis_tickformat=column_format(metric, group),
         barmode="group",
+        title=dict(text=", ".join(f'{key}: {value}' for key, value in group)),
     )
     result.append(fig)
     return result

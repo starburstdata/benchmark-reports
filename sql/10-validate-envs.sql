@@ -53,7 +53,7 @@ environments AS (
       , avg(m.value) + 2 * stddev(m.value) AS high
     FROM execution_measurements em
     JOIN executions ex ON ex.id = em.execution_id
-    JOIN benchmark_runs runs ON runs.id = ex.benchmark_run_id
+    JOIN runs ON runs.id = ex.benchmark_run_id
     JOIN measurements m ON m.id = em.measurement_id
     GROUP BY 1, 2, 3
 )
