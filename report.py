@@ -5,17 +5,17 @@ Read queries from files, execute them, draw plots and tables and generate a HTML
 """
 
 import argparse
+import csv
 import glob
 import logging
 import sys
-from os.path import abspath
 from dataclasses import dataclass, field
 from functools import cache
-import csv
+from os.path import abspath
 
 import git
-from slugify import slugify
 import plotly.graph_objects as go
+from slugify import slugify
 from sqlalchemy import create_engine
 from sqlalchemy.schema import MetaData, Table
 from sqlalchemy.sql.expression import select, text
@@ -238,7 +238,7 @@ def add_table(columns, rows, group):
     fig.add_trace(go.Table(header=header, cells=cells))
     fig.update_layout(
         height=800,
-        title=dict(text=", ".join(f'{key}: {value}' for key, value in group)),
+        title=dict(text=", ".join(f"{key}: {value}" for key, value in group)),
     )
     return [fig]
 
@@ -302,7 +302,7 @@ def add_barchart(columns, rows, group):
     fig.update_layout(
         yaxis_tickformat=column_format(metric, group),
         barmode="group",
-        title=dict(text=", ".join(f'{key}: {value}' for key, value in group)),
+        title=dict(text=", ".join(f"{key}: {value}" for key, value in group)),
     )
     result.append(fig)
     return result
