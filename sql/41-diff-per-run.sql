@@ -149,7 +149,8 @@ attributes AS (
 SELECT
     regexp_replace(query_name, '/[^/]+$', '') AS benchmark_name
   , regexp_replace(query_name, '^.*/([^/]*?)(\.[^/.]+)?$', '\1') AS query_name
-  , nullif(format('[%s](runs/%s.md)', props_num, id), '[](runs/.md)') AS run_number
+  , props_num AS props_id
+  , nullif(format('[%s](runs/%s.md)', props_num, id), '[](runs/.md)') AS run_number_label
   , env_name AS environment_pivot
   , metric
   , unit

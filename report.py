@@ -224,9 +224,9 @@ def figures(columns, rows):
     if "unit" in columns:
         group_by = ["unit"]
         # groups are sets of tuples, because dicts are not hashable
-        groups = set(frozenset((key, row[key]) for key in group_by) for row in rows)
+        groups = set(frozenset((key, str(row[key])) for key in group_by) for row in rows)
 
-    for group in sorted(groups):
+    for group in sorted(groups, key=sorted):
         logging.debug("Rendering group %s", group)
         names = [name for name in columns if name not in group_by]
         group_rows = [row for row in rows if row_in_group(row, group)]
@@ -265,14 +265,10 @@ def add_barchart(columns, rows, group):
     pivot_by = [key for key in columns if is_pivot(key)]
     metrics = [key for key in columns if is_metric(key)]
     labels = [key for key in columns if is_label(key)]
-    if group == frozenset([("unit", None)]):
+    if group == frozenset([("unit", "None")]):
         # TODO this should be used to generate groups/subplots
         logging.warning("Skipping group %s with %d rows", group, len(rows))
         return result
-    x = []
-    for row in rows:
-        values = [str(row[key]) for key in dimensions]
-        x.append(", ".join(values))
     # detect and create errors series
     errors = {}
     for key in metrics:
@@ -281,8 +277,9 @@ def add_barchart(columns, rows, group):
         # note we get the label without the _err suffix
         errors[label_from_name(key[:-4])] = [row[key] for row in rows]
     fig = go.Figure()
-    pivot_sets = set(frozenset((key, row[key]) for key in pivot_by) for row in rows)
-    for pivot_set in sorted(pivot_sets):
+    pivot_sets = set(frozenset((key, str(row[key])) for key in pivot_by) for row in rows)
+    for pivot_set in sorted(pivot_sets, key=sorted):
+        logging.debug("Rendering pivot set %s", pivot_set)
         pivot_rows = rows
         label_prefix = ""
         if pivot_set:
@@ -294,6 +291,10 @@ def add_barchart(columns, rows, group):
                 )
                 + " "
             )
+        x = []
+        for row in pivot_rows:
+            values = [str(row[key]) for key in dimensions]
+            x.append(", ".join(values))
         text = [
             "</br>".join(f"{label_from_name(key)}: {row[key]}" for key in labels)
             for row in pivot_rows
@@ -305,11 +306,12 @@ def add_barchart(columns, rows, group):
             error = None
             if label in errors:
                 error = dict(type="data", array=errors.get(label))
+            y = [row[metric] for row in pivot_rows]
             fig.add_trace(
                 go.Bar(
                     name=label_prefix + label_from_name(metric),
                     x=x,
-                    y=[row[metric] for row in pivot_rows],
+                    y=y,
                     error_y=error,
                     hovertext=text,
                 )
