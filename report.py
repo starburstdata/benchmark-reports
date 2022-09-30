@@ -7,18 +7,22 @@ Read queries from files, execute them, draw plots and tables and generate a HTML
 import argparse
 import csv
 import glob
+import io
 import logging
+import subprocess
 import sys
+import unittest
 from dataclasses import dataclass, field
 from functools import cache
-from os.path import abspath
 
 import git
+from git import InvalidGitRepositoryError
 import plotly.graph_objects as go
 from slugify import slugify
 from sqlalchemy import create_engine
-from sqlalchemy.schema import MetaData, Table
-from sqlalchemy.sql.expression import select, text
+from sqlalchemy.engine import make_url
+from sqlalchemy.sql.expression import text
+from testcontainers.postgres import PostgresContainer
 
 
 def main():
@@ -58,10 +62,25 @@ def main():
         default=logging.WARNING,
         help="Print info level logs",
     )
+    parser.add_argument(
+        "-t",
+        "--test",
+        action="store_true",
+        help="test this script instead of executing it",
+    )
 
     args = parser.parse_args()
     logging.basicConfig(level=args.loglevel)
-    print_report(args.db_url, args.sql, args.environments, args.output)
+    if args.test:
+        sys.argv = [sys.argv[0]]
+        unittest.main()
+        return
+
+    logging.debug("Connecting to the database")
+    engine = create_engine(args.db_url, connect_args={})
+    connection = engine.connect()
+
+    print_report(connection, args.sql, args.environments, args.output)
 
 
 class SplitArgs(argparse.Action):
@@ -69,7 +88,7 @@ class SplitArgs(argparse.Action):
         setattr(namespace, self.dest, values.split(","))
 
 
-def print_report(dburl, sql, environments, output):
+def print_report(connection, sql, environments, output):
     """Print report for all report queries and selected environments"""
     logging.debug("Setup reports")
 
@@ -77,10 +96,6 @@ def print_report(dburl, sql, environments, output):
     logging.info("Loading queries from %s", sql_glob)
     input_files = [f for f in sorted(glob.glob(sql_glob))]
     logging.debug("Query files: %s", input_files)
-
-    logging.debug("Connecting to the database")
-    engine = create_engine(dburl, connect_args={})
-    connection = engine.connect()
 
     logging.info("Resolving environments")
     params = {f"e{i}": name for i, name in enumerate(environments)}
@@ -95,13 +110,14 @@ def print_report(dburl, sql, environments, output):
     reports = add_figures(reports, connection, env_ids)
 
     logging.debug("Printing reports")
-    # TODO use a template engine like Jinja2, add intro with links to data model, explain why some metrics are selected (duration, mem, total cpu)
+    # TODO use a template engine like Jinja2, add intro with links to data model,
+    # explain why some metrics are selected (duration, mem, total cpu)
     output.write('<html><head><meta charset="utf-8" /></head><body>')
     output.write(
         '<p><a href="https://github.com/trinodb/benchto/blob/master/docs/data-model/README.md">Benchto Data Model</a>'
     )
-    output.write(f"<h2>Table of Contents</h2>")
-    output.write(f"<ol>")
+    output.write("<h2>Table of Contents</h2>")
+    output.write("<ol>")
     for entry in reports:
         if not entry.figures:
             # some reports might not create a figure
@@ -113,7 +129,7 @@ def print_report(dburl, sql, environments, output):
             # some reports might not create a figure
             continue
 
-        output.write(f"</ol>")
+        output.write("</ol>")
         output.write(f'<h2 id="{entry.slug}">{entry.title}</h2>')
         output.write(f"<p>{entry.desc}</p>")
         output.write(
@@ -390,6 +406,36 @@ def align_from_name(name):
     if is_metric(name):
         return "right"
     return "left"
+
+
+class TestReport(unittest.TestCase):
+    def test_report(self):
+        with PostgresContainer("postgres:latest") as postgres:
+            self.restore(postgres.get_connection_url(), "testdata/backup.dump")
+            url = make_url(postgres.get_connection_url())
+            engine = create_engine(url.set(database="benchto"))
+
+            with open("testdata/report.html", "r") as f:
+                expected = f.read()
+
+            output = io.StringIO()
+            print_report(engine.connect(), "sql", "%", output)
+            # only check the length, because reports contain random UUIDs, this is enough for a smoke test
+            self.assertEqual(len(output.getvalue()), len(expected))
+            output.close()
+
+    def restore(self, url, filename):
+        subprocess.run(
+            [
+                "pg_restore",
+                "-d",
+                url.replace("+psycopg2", ""),
+                "--create",
+                "--exit-on-error",
+                "--no-owner",
+                filename,
+            ]
+        )
 
 
 if __name__ == "__main__":

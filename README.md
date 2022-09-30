@@ -85,3 +85,47 @@ To refresh the list of dependencies:
 ```bash
 pip-compile requirements.in
 ```
+
+To run tests:
+```bash
+./report.py -t
+```
+
+To overwrite the example report used in tests:
+```bash
+./report.py -v -s sql -o testdata/report.html
+```
+
+To make a new backup of the Benchto database to use in tests:
+```bash
+pg_dump -f testdata/backup.dump -Fc 'postgres://postgres@localhost/benchto?sslmode=disable'
+```
+
+Size of the backup is mostly determined by the `query_info` table:
+```
+pg:postgres@localhost/benchto=> \dt+
+                              List of relations
+┌────────┬────────────────────────────┬───────┬───────┬────────────┬─────────┐
+│ Schema │            Name            │ Type  │ Rows  │    Size    │ Comment │
+├────────┼────────────────────────────┼───────┼───────┼────────────┼─────────┤
+│ public │ benchmark_run_measurements │ table │     0 │ 0 bytes    │         │
+│ public │ benchmark_runs             │ table │   255 │ 144 kB     │         │
+│ public │ benchmark_runs_attributes  │ table │  2074 │ 168 kB     │         │
+│ public │ benchmark_runs_variables   │ table │  3516 │ 240 kB     │         │
+│ public │ environment_attributes     │ table │     0 │ 528 kB     │         │
+│ public │ environments               │ table │     0 │ 8192 bytes │         │
+│ public │ execution_attributes       │ table │  1270 │ 152 kB     │         │
+│ public │ execution_measurements     │ table │ 18438 │ 832 kB     │         │
+│ public │ executions                 │ table │  1320 │ 160 kB     │         │
+│ public │ measurements               │ table │ 18442 │ 1608 kB    │         │
+│ public │ query_info                 │ table │  1270 │ 110 MB     │         │
+│ public │ schema_version             │ table │     0 │ 16 kB      │         │
+│ public │ tags                       │ table │     0 │ 16 kB      │         │
+└────────┴────────────────────────────┴───────┴───────┴────────────┴─────────┘
+(13 rows)
+```
+
+To restore it:
+```bash
+pg_restore -d 'postgres://postgres@localhost?sslmode=disable' --create --exit-on-error testdata/backup.dump
+```

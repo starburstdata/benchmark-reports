@@ -9,3 +9,5 @@ gitpython
 # dev
 isort
 pip-tools
+flake8
+testcontainers[postgresql]
