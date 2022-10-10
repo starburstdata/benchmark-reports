@@ -69,4 +69,4 @@ jobs:
         git diff
         git commit -a -m "Prepare for next development iteration"
         git log
-        git push --tags origin master
+        git push --tags origin main
