@@ -3,6 +3,16 @@ Performance test reports
 
 ## Quick start
 
+Run in a container, connect to the Benchto database running in another container
+and write to `report.html` in the current directory:
+```bash
+docker run -it --rm \
+  -e DB_URL=postgresql+psycopg2://postgres@$(docker inspect -f '{{.NetworkSettings.IPAddress}}' benchto-postgres):5432/benchto \
+  -e PGPASSWORD \
+  -v $(pwd)/report.html:/src/report.html \
+  benchmark-reports:latest
+```
+
 Set up the Python virtual environment and install dependencies, this is only
 required once:
 ```bash

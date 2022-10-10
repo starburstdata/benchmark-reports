@@ -14,10 +14,11 @@ import sys
 import unittest
 from dataclasses import dataclass, field
 from functools import cache
+from os import environ
 
 import git
-from git import InvalidGitRepositoryError
 import plotly.graph_objects as go
+from git import InvalidGitRepositoryError
 from slugify import slugify
 from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
@@ -30,7 +31,9 @@ def main():
     parser.add_argument(
         "-d",
         "--db-url",
-        default="postgresql+psycopg2://postgres@localhost:5432/benchto",
+        default=environ.get(
+            "DB_URL", "postgresql+psycopg2://postgres@localhost:5432/benchto"
+        ),
         help="Database URL. Do NOT include a password here, rely on the driver to read it from a file or the environment.",
     )
     parser.add_argument(
@@ -42,7 +45,7 @@ def main():
     parser.add_argument(
         "-e",
         "--environments",
-        default="%",
+        default=environ.get("ENVIRONMENTS", "%"),
         action=SplitArgs,
         help="Names of environments to include",
     )
@@ -224,7 +227,9 @@ def figures(columns, rows):
     if "unit" in columns:
         group_by = ["unit"]
         # groups are sets of tuples, because dicts are not hashable
-        groups = set(frozenset((key, str(row[key])) for key in group_by) for row in rows)
+        groups = set(
+            frozenset((key, str(row[key])) for key in group_by) for row in rows
+        )
 
     for group in sorted(groups, key=sorted):
         logging.debug("Rendering group %s", group)
@@ -277,7 +282,9 @@ def add_barchart(columns, rows, group):
         # note we get the label without the _err suffix
         errors[label_from_name(key[:-4])] = [row[key] for row in rows]
     fig = go.Figure()
-    pivot_sets = set(frozenset((key, str(row[key])) for key in pivot_by) for row in rows)
+    pivot_sets = set(
+        frozenset((key, str(row[key])) for key in pivot_by) for row in rows
+    )
     for pivot_set in sorted(pivot_sets, key=sorted):
         logging.debug("Rendering pivot set %s", pivot_set)
         pivot_rows = rows
