@@ -58,8 +58,9 @@ jobs:
           exit 0
         fi
         docker build -t $repository:$VERSION .
+        docker push $repository:$VERSION
         docker tag $repository:$VERSION $repository:latest
-        docker push $repository:$VERSION $repository:latest
+        docker push $repository:latest
 
     - name: Set next development version
       run: |
