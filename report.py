@@ -431,6 +431,10 @@ class TestReport(unittest.TestCase):
             print_report(engine.connect(), "sql", "%", output)
             actual = output.getvalue()
             # only check the length, because reports contain random UUIDs, this is enough for a smoke test
+            # to debug differences between actual and expected HTML files, format them and unify UUIDs:
+            # npm -g install js-beautify
+            # js-beautify actual.html > actualf.html
+            # gsed -i 's/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/00000000-1111-1111-1111-222222222222/g' actualf.html
             try:
                 self.assertEqual(len(actual), len(expected))
             except AssertionError:
