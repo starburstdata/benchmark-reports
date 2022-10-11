@@ -32,16 +32,21 @@ attributes AS (
 , measurements AS (
     SELECT
         v.id
-      , v.name
+      , v.name AS metric_id
+      , substr(v.name, strpos(v.name, '-') + 1) AS name
       , v.unit
       , v.value
+      -- scope can be: prestoQuery, cluster, or driver if there's no prefix
+      , CASE WHEN v.name LIKE '%-%' THEN split_part(v.name, '-', 1) ELSE 'driver' END AS scope
     FROM measurements v
     GROUP BY v.id, v.name, v.unit, v.value
 )
 , execution_devs AS (
     SELECT
         runs.id AS run_id
+      , m.metric_id
       , m.name
+      , m.scope
       , m.unit
       , avg(m.value) AS mean
       , min(m.value) AS min
@@ -52,20 +57,19 @@ attributes AS (
     JOIN benchmark_runs runs ON runs.id = ex.benchmark_run_id
     JOIN measurements m ON m.id = em.measurement_id
     WHERE runs.environment_id = ANY(:env_ids)
-    GROUP BY 1, 2, 3
+    GROUP BY 1, 2, 3, 4, 5
 )
 , run_pairs AS (
     SELECT
-      /*  env_left.name AS left_env_name
-      , env_right.name AS right_env_name
-      ,*/ ex_left.name AS metric
+        ex_left.name AS metric
+      , ex_left.scope
       , ex_left.unit AS unit
       -- result
       , cast(100 * (ex_right.mean - ex_left.mean) / nullif(cast(greatest(ex_right.mean, ex_left.mean) as real), 0) AS decimal(5,2)) AS diff_pct
     FROM runs run_left
     JOIN runs run_right ON run_left.environment_id != run_right.environment_id AND run_left.properties = run_right.properties
     JOIN execution_devs ex_left ON ex_left.run_id = run_left.id
-    JOIN execution_devs ex_right ON ex_right.run_id = run_right.id AND ex_left.name = ex_right.name
+    JOIN execution_devs ex_right ON ex_right.run_id = run_right.id AND ex_left.metric_id = ex_right.metric_id
     JOIN environments env_left ON env_left.id = run_left.environment_id
     JOIN environments env_right ON env_right.id = run_right.environment_id
     -- don't count the same pair twice
@@ -73,41 +77,37 @@ attributes AS (
 )
 , pair_stats AS (
     SELECT
-      /*  left_env_name
-      , right_env_name
-      ,*/ metric
+        metric
+      , scope
       , unit
       , min(diff_pct) as min
       , max(diff_pct) as max
     FROM run_pairs
-    GROUP BY /*left_env_name, right_env_name,*/ metric, unit
+    GROUP BY metric, scope, unit
 )
 , dimensions AS (
     SELECT
-      /*  left_env_name
-      , right_env_name
-      ,*/ metric
+        metric
+      , scope
       , unit
     FROM run_pairs
-    GROUP BY /*left_env_name, right_env_name,*/ metric, unit
+    GROUP BY metric, scope, unit
 )
 , histogram as (
     SELECT
-      /*  left_env_name
-      , right_env_name
-      ,*/ metric
+        metric
+      , scope
       , unit
       , width_bucket(diff_pct, s.min, nullif(s.max, s.min), 9) AS bucket
       , numrange(min(diff_pct), max(diff_pct), '[]') AS range
       , count(*) AS freq
     FROM run_pairs r
-    JOIN pair_stats s USING (/*left_env_name, right_env_name,*/ metric, unit)
-    GROUP BY /*left_env_name, right_env_name,*/ metric, unit, bucket
+    JOIN pair_stats s USING (metric, scope, unit)
+    GROUP BY metric, scope, unit, bucket
 )
 SELECT
-  /*  d.left_env_name
-  , d.right_env_name
-  ,*/ d.metric AS metric
+    d.metric AS metric
+  , d.scope AS scope_label
   , d.unit AS unit
   , s.bucket AS bucket
   , range AS diff_pct_range
@@ -115,6 +115,6 @@ SELECT
   , repeat('■', (coalesce(freq, 0)::float / max(freq) over() * 30)::int) AS bar_chart_label
 FROM dimensions d
 CROSS JOIN generate_series(1, 10) s(bucket)
-LEFT JOIN histogram h ON (/*d.left_env_name, d.right_env_name,*/ d.metric, d.unit, s.bucket) = (/*h.left_env_name, h.right_env_name,*/ h.metric, h.unit, h.bucket)
-ORDER BY /*d.left_env_name, d.right_env_name,*/ d.metric, d.unit, s.bucket
+LEFT JOIN histogram h ON (d.metric, d.scope, d.unit, s.bucket) = (h.metric, h.scope, h.unit, h.bucket)
+ORDER BY d.metric, d.scope, d.unit, s.bucket
 ;
