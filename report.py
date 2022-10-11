@@ -9,6 +9,7 @@ import csv
 import glob
 import io
 import logging
+import re
 import subprocess
 import sys
 import unittest
@@ -430,11 +431,18 @@ class TestReport(unittest.TestCase):
             output = io.StringIO()
             print_report(engine.connect(), "sql", "%", output)
             actual = output.getvalue()
+            # replace the parts that are expected to always change to make the diff more meaningful
+            replacements = [
+                (
+                    r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+                    "00000000-1111-1111-1111-222222222222",
+                ),
+                (r"benchmark-reports/blob/[0-9a-f]{40}/", "benchmark-reports/blob/x/"),
+            ]
+            for regex, replacement in replacements:
+                actual = re.sub(regex, replacement, actual)
+                expected = re.sub(regex, replacement, expected)
             # only check the length, because reports contain random UUIDs, this is enough for a smoke test
-            # to debug differences between actual and expected HTML files, format them and unify UUIDs:
-            # npm -g install js-beautify
-            # js-beautify actual.html > actualf.html
-            # gsed -i 's/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/00000000-1111-1111-1111-222222222222/g' actualf.html
             try:
                 self.assertEqual(len(actual), len(expected))
             except AssertionError:
