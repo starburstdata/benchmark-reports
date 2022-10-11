@@ -175,7 +175,11 @@ def sha():
     try:
         repo = git.Repo(search_parent_directories=True)
     except InvalidGitRepositoryError:
-        return "master"
+        try:
+            with open('version', 'r') as f:
+                return f.read()
+        except FileNotFoundError:
+            return "main"
     return repo.head.object.hexsha
 
 
