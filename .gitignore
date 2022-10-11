@@ -131,6 +131,4 @@ dmypy.json
 # Generated reports
 /runs/
 /envs/
-/*.html
-/*.csv
 /testdata/actual.html

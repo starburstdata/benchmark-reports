@@ -9,7 +9,7 @@ and write to `report.html` in the current directory:
 docker run -it --rm \
   -e DB_URL=postgresql+psycopg2://postgres@$(docker inspect -f '{{.NetworkSettings.IPAddress}}' benchto-postgres):5432/benchto \
   -e PGPASSWORD \
-  -v $(pwd)/report.html:/src/report.html \
+  -v $(pwd)/out:/out \
   benchmark-reports:latest
 ```
 

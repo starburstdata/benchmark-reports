@@ -15,7 +15,7 @@ import sys
 import unittest
 from dataclasses import dataclass, field
 from functools import cache
-from os import environ
+from os import environ, path
 
 import git
 import plotly.graph_objects as go
@@ -53,8 +53,7 @@ def main():
     parser.add_argument(
         "-o",
         "--output",
-        type=argparse.FileType("w"),
-        default=sys.stdout,
+        default="-",
         help="Filename to write the report to",
     )
     parser.add_argument(
@@ -84,7 +83,16 @@ def main():
     engine = create_engine(args.db_url, connect_args={})
     connection = engine.connect()
 
-    print_report(connection, args.sql, args.environments, args.output)
+    output = sys.stdout
+    basedir = None
+    if args.output != "-":
+        output = open(args.output, 'w')
+        basedir = path.abspath(path.dirname(args.output))
+
+    print_report(connection, args.sql, args.environments, output, basedir=basedir)
+
+    if args.output != "-":
+        output.close()
 
 
 class SplitArgs(argparse.Action):
@@ -92,7 +100,7 @@ class SplitArgs(argparse.Action):
         setattr(namespace, self.dest, values.split(","))
 
 
-def print_report(connection, sql, environments, output):
+def print_report(connection, sql, environments, output, basedir=None):
     """Print report for all report queries and selected environments"""
     logging.debug("Setup reports")
 
@@ -111,7 +119,7 @@ def print_report(connection, sql, environments, output):
 
     logging.debug("Setup done, generating reports")
     reports = [read_query(f) for f in input_files]
-    reports = add_figures(reports, connection, env_ids)
+    reports = add_figures(reports, connection, env_ids, basedir)
 
     logging.debug("Printing reports")
     # TODO use a template engine like Jinja2, add intro with links to data model,
@@ -136,9 +144,14 @@ def print_report(connection, sql, environments, output):
         output.write("</ol>")
         output.write(f'<h2 id="{entry.slug}">{entry.title}</h2>')
         output.write(f"<p>{entry.desc}</p>")
-        output.write(
-            f'<p><a href="{entry.file_url}">Query</a>, results: <a href="{entry.results_file}">{entry.results_file}</a></p>'
-        )
+        output.write("<p>")
+        output.write(f'<a href="{entry.file_url}">Query</a>')
+        if basedir:
+            file = path.join(basedir, entry.results_file)
+            output.write(
+                f', results: <a href="{file}">{entry.results_file}</a>'
+            )
+        output.write("</p>")
         for fig in entry.figures:
             output.write(
                 fig.to_html(full_html=False, include_plotlyjs=include_plotlyjs)
@@ -200,7 +213,7 @@ def read_query(file):
     return Report(file, query, title, desc)
 
 
-def add_figures(reports, connection, env_ids):
+def add_figures(reports, connection, env_ids, basedir):
     """Add figures to reports by executing queries"""
     for entry in reports:
         logging.debug("Fetching results for: %s", entry.file)
@@ -211,11 +224,12 @@ def add_figures(reports, connection, env_ids):
             continue
 
         rows = result.fetchall()
-        # write results to a csv file
-        with open(entry.results_file, "w") as f:
-            writer = csv.writer(f)
-            writer.writerow([name for name in result.keys()])
-            writer.writerows(rows)
+        if basedir:
+            # write results to a csv file
+            with open(path.join(basedir, entry.results_file), "w") as f:
+                writer = csv.writer(f)
+                writer.writerow([name for name in result.keys()])
+                writer.writerows(rows)
         # create figures
         entry.figures = figures(result.keys(), rows)
     return reports
