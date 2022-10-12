@@ -9,6 +9,8 @@ import csv
 import glob
 import io
 import logging
+import numbers
+import os
 import re
 import subprocess
 import sys
@@ -19,12 +21,31 @@ from os import environ, path
 
 import git
 import plotly.graph_objects as go
-from git import InvalidGitRepositoryError
+from jinja2 import Environment, select_autoescape, PackageLoader
 from slugify import slugify
 from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 from sqlalchemy.sql.expression import text
 from testcontainers.postgres import PostgresContainer
+
+jinja_env = Environment(
+    loader=PackageLoader("report"),
+    autoescape=select_autoescape()
+)
+table_template = jinja_env.get_template("table_template.html")
+env_template = jinja_env.get_template("env_template.html")
+run_template = jinja_env.get_template("run_template.html")
+table_css = jinja_env.get_template("table.css")
+
+runs_query = """
+SELECT id
+FROM benchmark_runs
+WHERE status = 'ENDED'
+AND environment_id = ANY(:env_ids)
+ORDER BY id
+;
+"""
+
 
 
 def main():
@@ -118,16 +139,19 @@ def print_report(connection, sql, environments, output, basedir=None):
     env_ids = [r["id"] for r in rows]
 
     logging.debug("Setup done, generating reports")
-    reports = [read_query(f) for f in input_files]
+    reports = [read_report(f) for f in input_files]
     reports = add_figures(reports, connection, env_ids, basedir)
 
     logging.debug("Printing reports")
     # TODO use a template engine like Jinja2, add intro with links to data model,
     # explain why some metrics are selected (duration, mem, total cpu)
-    output.write('<html><head><meta charset="utf-8" /></head><body>')
+    output.write(f'<html><head><meta charset="utf-8" /><style>{table_css.render()}</style></head><body>')
     output.write(
         '<p><a href="https://github.com/trinodb/benchto/blob/master/docs/data-model/README.md">Benchto Data Model</a>'
     )
+    output.write('<div style="display: none;">')
+    output.write(go.Figure().to_html(full_html=False, include_plotlyjs='cdn'))
+    output.write("</div>")
     output.write("<h2>Table of Contents</h2>")
     output.write("<ol>")
     for entry in reports:
@@ -135,7 +159,6 @@ def print_report(connection, sql, environments, output, basedir=None):
             # some reports might not create a figure
             continue
         output.write(f'<li><a href="#{entry.slug}">{entry.title}</a></li>')
-    include_plotlyjs = "cdn"
     for entry in reports:
         if not entry.figures:
             # some reports might not create a figure
@@ -151,17 +174,90 @@ def print_report(connection, sql, environments, output, basedir=None):
             output.write(
                 f', results: <a href="{file}">{entry.results_file}</a>'
             )
-        output.write("</p>")
+        output.write('</p>')
         for fig in entry.figures:
             output.write(
-                fig.to_html(full_html=False, include_plotlyjs=include_plotlyjs)
+                fig.to_html(full_html=False, include_plotlyjs=False)
             )
-            include_plotlyjs = False
 
-    # TODO dump env, run details in separate files, link to them
+    if basedir is not None:
+        dump_envs_details(connection, sql, env_ids, basedir)
+        dump_runs_details(connection, sql, env_ids, basedir)
+
     output.write("</body></html>")
-
     logging.debug("All done")
+
+
+def dump_envs_details(connection, sql, env_ids, basedir):
+    """Dump env details for all selected environments"""
+    logging.debug("Listing all environments in %s", env_ids)
+    env_details_sql = os.path.join(sql, "env_details.sql")
+    logging.info("Loading query from %s", env_details_sql)
+    env_details = read_env_details(env_details_sql)
+    for env_id in env_ids:
+        dump_env_details_to_file(
+            os.path.join(basedir, "envs", str(env_id)),
+            env_details,
+            connection,
+            env_id,
+        )
+
+
+def dump_env_details_to_file(prefix, details, connection, id):
+    logging.debug("Fetching results for: %s", details.file)
+    result = connection.execute(text(details.query), id=id)
+    headers = [dict(value=label_from_name(key), css_class=f'align-{align_from_name(key)}') for key in result.keys()]
+    rows = [[dict(value=table_entry(row[i]), css_class=header['css_class']) for i, header in enumerate(headers)] for row in result.fetchall()]
+    # write table to a html file
+    os.makedirs(prefix, exist_ok=True)
+    with open(os.path.join(prefix, details.results_file), "w") as f:
+        f.write(
+            env_template.render(headers=headers, rows=rows)
+        )
+
+
+def dump_runs_details(connection, sql, env_ids, basedir):
+    logging.debug("Dumping runs details for env_ids: %s", env_ids)
+    runs = get_run_ids(connection, env_ids)
+    sql_glob = os.path.join(glob.escape(sql), "run-*.sql")
+    logging.info("Loading queries from %s", sql_glob)
+    run_details_queries = [f for f in sorted(glob.glob(sql_glob))]
+    logging.debug("Query files: %s", run_details_queries)
+    run_details = [read_run_details(f) for f in run_details_queries]
+    for run in runs:
+        dump_run_details(connection, run, run_details, basedir)
+
+
+def get_run_ids(connection, env_ids):
+    """Get run details for all selected environments"""
+    logging.debug("Listing all runs from env_ids: %s", env_ids)
+    result = connection.execute(text(runs_query), env_ids=env_ids)
+    return [row["id"] for row in result.fetchall()]
+
+
+def dump_run_details(connection, run_id, run_details, basedir):
+    for run_report in run_details:
+        logging.debug("Fetching results for: %s", run_report.file)
+        result = connection.execute(text(run_report.query), id=run_id)
+        headers = [dict(value=label_from_name(key), css_class=f'align-{align_from_name(key)}') for key in result.keys()]
+        headers[-1]['css_class'] = "align-right"  # make sure the last column is right-aligned
+        rows = [[dict(value=table_entry(row[i]), css_class=header['css_class']) for i, header in enumerate(headers)] for row in result.fetchall()]
+        run_report.contents = table_template.render(headers=headers, rows=rows)
+    # Create summary index.html for a whole run
+    os.makedirs(os.path.join(basedir, "runs", str(run_id)), exist_ok=True)
+    with open(os.path.join(basedir, "runs", str(run_id), "index.html"), "w") as f:
+        f.write(run_template.render(run_id=run_id, reports=run_details, sha=sha()))
+
+
+@dataclass(init=True)
+class Table:
+    """HTML table for showing raw data"""
+
+    headers: dict = field(default_factory=dict)
+    rows: list = field(default_factory=list)
+
+    def to_html(self, **kwargs):
+        return table_template.render(headers=self.headers, rows=self.rows)
 
 
 @dataclass
@@ -175,6 +271,7 @@ class Report:
     title: str
     slug: str = field(init=False)
     desc: str
+    tables: list[Table] = field(default_factory=list)
     figures: list[go.Figure] = field(default_factory=list)
 
     def __post_init__(self):
@@ -183,17 +280,63 @@ class Report:
         self.results_file = self.slug + ".csv"
 
 
+@dataclass
+class EnvDetails:
+    """Details regarding an environment"""
+
+    file: str
+    results_file: str = field(init=False)
+    query: str
+    title: str
+    slug: str = field(init=False)
+    desc: str
+
+    def __post_init__(self):
+        self.slug = slugify(self.title)
+        self.results_file = self.slug + ".html"
+
+
+@dataclass
+class RunDetails:
+    """Details regarding a run"""
+
+    file: str
+    contents: str = field(init=False)
+    query: str
+    title: str
+    slug: str = field(init=False)
+    desc: str
+
+    def __post_init__(self):
+        self.slug = slugify(self.title)
+
+
 @cache
 def sha():
     try:
         repo = git.Repo(search_parent_directories=True)
-    except InvalidGitRepositoryError:
+    except git.InvalidGitRepositoryError:
         try:
             with open('version', 'r') as f:
                 return f.read()
         except FileNotFoundError:
             return "main"
     return repo.head.object.hexsha
+
+
+def read_env_details(file):
+    desc, query, title = read_query(file)
+    return EnvDetails(file, query, title, desc)
+
+
+def read_run_details(file):
+    desc, query, title = read_query(file)
+    return RunDetails(file, query, title, desc)
+
+
+def read_report(file):
+    desc, query, title = read_query(file)
+    return Report(file, query, title, desc)
 
 
 def read_query(file):
@@ -210,7 +353,7 @@ def read_query(file):
                     desc += line.lstrip("-")
                 continue
             query += line
-    return Report(file, query, title, desc)
+    return desc, query, title
 
 
 def add_figures(reports, connection, env_ids, basedir):
@@ -261,26 +404,23 @@ def figures(columns, rows):
 
 def add_table(columns, rows, group):
     # TODO link some (id?) columns
-    header = dict(
-        values=list(label_from_name(key) for key in columns),
-        align=[align_from_name(n) for n in columns],
-    )
-    values = []
-    for name in columns:
-        col_values = [str(row[name]) for row in rows]
-        values.append(col_values)
-    cells = dict(
-        values=values,
-        format=[column_format(name, group) for name in columns],
-        align=[align_from_name(name) for name in columns],
-    )
-    fig = go.Figure()
-    fig.add_trace(go.Table(header=header, cells=cells))
-    fig.update_layout(
-        height=800,
-        title=dict(text=", ".join(f"{key}: {value}" for key, value in group)),
-    )
+    headers = [dict(value=label_from_name(key), css_class=f'align-{align_from_name(key)}') for key in columns]
+    rows = [[dict(value=table_entry(row[i]), css_class=header['css_class']) for i, header in enumerate(headers)] for row in rows]
+    fig = Table(headers=headers, rows=rows)
     return [fig]
+
+
+def table_entry(item):
+    if item is None:
+        return None
+    if isinstance(item, numbers.Number):
+        return f'<pre class="numeric">{ item }</pre>'
+    trimmed = str(item).strip('\n')
+    if trimmed.endswith('</a>'):
+        return trimmed
+    if trimmed.count('\n') < 5:
+        return f'<pre>{ trimmed }</pre>'
+    return '<details><summary>{}</summary><pre>{}</pre></details>'.format(trimmed[:trimmed.find("\n")], trimmed)
 
 
 def add_barchart(columns, rows, group):

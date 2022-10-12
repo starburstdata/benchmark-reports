@@ -44,7 +44,7 @@ attributes AS (
     GROUP BY runs.properties, runs.status
 )
 SELECT
-    env.name AS environment
+  format('<a href="envs/%s/env-details.html">%s</a>', env.id, env.name) AS environment
   , count(*) FILTER (WHERE contains(runs.environment_ids, env.id)) AS runs_num
   , count(*) FILTER (WHERE contains(runs.environment_ids, env.id) AND runs.status != 'ENDED') AS invalid_num
   , count(*) FILTER (WHERE contains(runs.environment_ids, env.id) AND runs.status = 'ENDED' AND cardinality(runs.environment_ids) > 1) AS comparable_num
@@ -62,6 +62,6 @@ SELECT
 FROM environments env
 CROSS JOIN unique_runs runs
 WHERE env.id = ANY(:env_ids)
-GROUP BY env.name
-ORDER BY env.name
+GROUP BY env.id, env.name
+ORDER BY env.id, env.name
 ;

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        {% include 'table.css' %}
+    </style>
+</head>
+<body>
+<h1>Run report for #{{run_id}}</h1>
+{% for report in reports %}
+    <h2>{{ report.title }}</h2>
+    <p>{{ report.contents|safe }}</p>
+{% endfor %}
+</body>
+</html>
