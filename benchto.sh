@@ -341,7 +341,7 @@ YAML
         ! command -V jenv >/dev/null || jenv local 1.8
         JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home java -Xmx1g \
             -jar "$local_repo/io/trino/benchto/benchto-driver/$benchto_version/benchto-driver-$benchto_version-exec.jar" \
-            --sql "$TRINO_DIR"/testing/trino-benchto-benchmarks/src/main/resources/sql \
+            --sql "$TRINO_DIR"/testing/trino-benchmark-queries/src/main/resources/sql \
             --benchmarks "$TRINO_DIR"/testing/trino-benchto-benchmarks/src/main/resources/benchmarks \
             --activeBenchmarks=presto/tpch \
             --overrides "$RES_DIR/overrides.yaml" \
