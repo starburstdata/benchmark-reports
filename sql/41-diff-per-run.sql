@@ -106,7 +106,7 @@ attributes AS (
         run_devs.id
       , run_devs.query_name
       , dense_rank() OVER (PARTITION BY cp.id ORDER BY run_devs.properties) AS props_num
-      , env.name AS env_name
+      , format('<a href="envs/%s/env-details.html">%s</a>', env.id, env.name) AS env_link
       , run_devs.name AS metric
       , run_devs.unit AS unit
       -- result
@@ -131,7 +131,7 @@ attributes AS (
         NULL AS id
       , NULL AS query_name
       , NULL AS props_num
-      , NULL AS env_name
+      , NULL AS env_link
       , NULL AS metric
       , NULL AS unit
       , NULL AS diff
@@ -150,8 +150,8 @@ SELECT
     regexp_replace(query_name, '/[^/]+$', '') AS benchmark_name
   , regexp_replace(query_name, '^.*/([^/]*?)(\.[^/.]+)?$', '\1') AS query_name
   , props_num AS props_id
-  , nullif(format('[%s](runs/%s.md)', props_num, id), '[](runs/.md)') AS run_number_label
-  , env_name AS environment_pivot
+  , nullif(format('<a href="runs/%s/index.html">%s</a>', id, id), '<a href="runs//index.html"></a>') AS run_number_label
+  , env_link AS environment_pivot
   , metric
   , unit
   , format_metric(diff, unit) AS diff_label
@@ -162,5 +162,5 @@ SELECT
   , '[' || format_metric(min, unit) || ', ' || format_metric(max, unit) || ']' AS range_label
   , run_properties AS run_properties_label
 FROM diffs
-ORDER BY group_id, is_header DESC, benchmark_name, query_name, run_properties, env_name
+ORDER BY group_id, is_header DESC, benchmark_name, query_name, run_properties, env_link
 ;

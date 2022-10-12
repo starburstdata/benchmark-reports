@@ -45,7 +45,7 @@ measurements AS (
     GROUP BY runs.environment_id, runs.benchmark_name, m.metric_id, m.name, m.scope, m.unit
 )
 SELECT
-    e.name AS environment_pivot
+  format('<a href="envs/%s/env-details.html">%s</a>', e.id, e.name) AS environment_pivot
   , r.benchmark_name AS benchmark_pivot
   , r.scope AS metric_scope
   , r.name AS metric_name

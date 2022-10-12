@@ -5,6 +5,7 @@ trino[sqlalchemy]
 psycopg2-binary
 python-slugify
 gitpython
+jinja2
 
 # dev
 isort

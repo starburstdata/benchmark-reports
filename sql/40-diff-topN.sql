@@ -70,8 +70,8 @@ attributes AS (
 )
 , diffs AS (
     SELECT
-        env_left.name AS left_env_name
-      , env_right.name AS right_env_name
+      format('<a href="envs/%s/env-details.html">%s</a>', env_left.id, env_left.name) AS left_env_link
+      , format('<a href="envs/%s/env-details.html">%s</a>', env_right.id, env_right.name) AS right_env_link
       , run_left.id AS left_run_id
       , run_right.id AS right_run_id
       -- TODO this is too much info, replace with a link to details
@@ -109,12 +109,12 @@ attributes AS (
 , diffs_ranked AS (
     SELECT
         *
-      , row_number() OVER (ORDER BY diff_pct DESC, left_env_name, right_env_name, left_run_id, right_run_id, query_name, metric) AS rownum
+      , row_number() OVER (ORDER BY diff_pct DESC, left_env_link, right_env_link, left_run_id, right_run_id, query_name, metric) AS rownum
     FROM diffs
 )
 SELECT
-    left_env_name AS left_environment
-  , right_env_name AS right_environment
+    left_env_link AS left_environment
+  , right_env_link AS right_environment
   --, run_vars
   , regexp_replace(query_name, '/[^/]+$', '') AS benchmark_name
   , regexp_replace(query_name, '^.*/([^/]*?)(\.[^/.]+)?$', '\1') AS query_name

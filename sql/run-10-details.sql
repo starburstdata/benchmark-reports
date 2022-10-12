@@ -1,3 +1,5 @@
+-- Run details
+-- Reads the names and values of all attributes and variables associated with a specific benchmark run.
 WITH
 properties AS (
     SELECT

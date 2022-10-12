@@ -1,3 +1,5 @@
+-- Env details
+-- Reads the names and values of all environment attributes associated with a specific environment.
 SELECT
     name
   , value

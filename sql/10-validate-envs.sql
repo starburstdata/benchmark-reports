@@ -74,7 +74,7 @@ environments AS (
     GROUP BY 1
 )
 SELECT
-    env.name AS environment
+  format('<a href="envs/%s/env-details.html">%s</a>', env.id, env.name) AS environment
   , array_to_string(env.attributes, E'\n') AS attributes_label
   , runs.sequence_id AS sequence_id
   , array_agg(DISTINCT runs.status) AS statuses_label

@@ -1,0 +1,1820 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .styled-table {
+    border-collapse: collapse;
+    margin: 1.5em 0;
+    font-size: 0.9em;
+    font-family: sans-serif;
+    min-width: 25em;
+    box-shadow: 0 0 1.25em rgba(0, 0, 0, 0.15);
+}
+.styled-table .align-left {
+    text-align: left;
+}
+.styled-table .align-right {
+    text-align: right;
+}
+.styled-table .numeric {
+    font-variant-numeric: tabular-nums;
+}
+.styled-table thead tr {
+    background-color: #009879;
+    color: #ffffff;
+}
+.styled-table th,
+.styled-table td {
+    padding: 0.5em 1em;
+}
+.styled-table td pre {
+    font-size: 0.9em;
+    font-family: sans-serif;
+}
+.styled-table tbody tr {
+    border-bottom: 1px solid #dddddd;
+}
+.styled-table tbody tr:nth-of-type(even) {
+    background-color: #f3f3f3;
+}
+.styled-table tbody tr:last-of-type {
+    border-bottom: 2px solid #009879;
+}
+.styled-table tbody tr.active-row {
+    font-weight: bold;
+    color: #009879;
+}
+    </style>
+</head>
+<body>
+<h1>Run report for #1</h1>
+
+    <h2> Run details
+</h2>
+    <p><table class="styled-table">
+    <thead>
+        <tr>
+            
+            <th class="align-left">Name</th>
+            
+            <th class="align-right">Value</th>
+            
+        </tr>
+    </thead>
+    <tbody>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>before-execution</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>sleep-4s, presto/session_set_cbo_flags.sql</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>concurrency</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>1</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>datasource</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>presto</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>frequency</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>7</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>prewarm-runs</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>2</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>quarantine</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>false</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>query-names</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>presto/tpch/q05.sql</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>runs</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>5</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>database</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>hive</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>join_distribution_type</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>PARTITIONED</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>join_reordering_strategy</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>ELIMINATE_CROSS_JOINS</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>prefix</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre></pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>query</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>q05</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>scale</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>10</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>scale_1000</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>10</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>scale_300</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>10</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>scale_3000</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>10</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>schema</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>tpch_sf10_orc</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>tpch_1000</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>tpch_sf10_orc</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>tpch_300</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>tpch_sf10_orc</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>tpch_3000</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>tpch_sf10_orc</pre>
+            </td>
+            
+        </tr>
+        
+    </tbody>
+</table></p>
+
+    <h2> Run execution measurements
+</h2>
+    <p><table class="styled-table">
+    <thead>
+        <tr>
+            
+            <th class="align-left">Measurement name</th>
+            
+            <th class="align-left">Mean</th>
+            
+            <th class="align-left">Stddev</th>
+            
+            <th class="align-left">Min</th>
+            
+            <th class="align-right">Max</th>
+            
+        </tr>
+    </thead>
+    <tbody>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>analysisTime</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>00:00:00.144308</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>±00:00:00.029783 (0.21%)</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>00:00:00.11828</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:00.18347</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>duration</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>00:00:08.3378</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>±00:00:01.101127 (0.13%)</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>00:00:06.964</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:09.552</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>finishingTime</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>00:00:00.004822</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>±00:00:00.002688 (0.56%)</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>00:00:00.00262</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:00.00844</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>internalNetworkInputDataSize</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>2418 MB</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>±353.50 bytes (0.00%)</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>2418 MB</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>2418 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>outputDataSize</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>101.00 bytes</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>±0.00 bytes (0.00%)</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>101.00 bytes</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>101.00 bytes</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>peakTotalMemoryReservation</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>3248 MB</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>±419 MB (0.13%)</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>2906 MB</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>3706 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>physicalInputDataSize</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>596 MB</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>±0.00 bytes (0.00%)</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>596 MB</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>596 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>physicalWrittenDataSize</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>0.00 bytes</pre>
+            </td>
+            
+            <td class="align-left">
+                None
+            </td>
+            
+            <td class="align-left">
+                <pre>0.00 bytes</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>0.00 bytes</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>planningTime</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>00:00:00.197554</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>±00:00:00.031324 (0.16%)</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>00:00:00.16102</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:00.24271</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>processedInputDataSize</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>2416 MB</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>±0.00 bytes (0.00%)</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>2416 MB</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>2416 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>rawInputDataSize</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>596 MB</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>±0.00 bytes (0.00%)</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>596 MB</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>596 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>totalBlockedTime</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>00:09:20.88</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>±00:01:12.358358 (0.13%)</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>00:08:03.6</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:10:30</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>totalCpuTime</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>00:00:22.664</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>±00:00:01.258304 (0.06%)</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>00:00:20.9</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:23.92</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre>totalScheduledTime</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>00:00:56.738</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>±00:00:08.233354 (0.15%)</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>00:00:46.58</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:01:07.8</pre>
+            </td>
+            
+        </tr>
+        
+    </tbody>
+</table></p>
+
+    <h2> Run executions
+</h2>
+    <p><table class="styled-table">
+    <thead>
+        <tr>
+            
+            <th class="align-left">Execution id</th>
+            
+            <th class="align-left">Metric name</th>
+            
+            <th class="align-right">Value</th>
+            
+        </tr>
+    </thead>
+    <tbody>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">1</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>analysisTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:00.16875</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">1</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>duration</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:09.552</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">1</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>finishingTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:00.00697</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">1</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>internalNetworkInputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>2418 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">1</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>outputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>101.00 bytes</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">1</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>peakTotalMemoryReservation</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>3705 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">1</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>physicalInputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>596 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">1</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>physicalWrittenDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>0.00 bytes</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">1</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>planningTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:00.24271</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">1</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>processedInputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>2416 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">1</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>rawInputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>596 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">1</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>totalBlockedTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:10:30</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">1</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>totalCpuTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:23.49</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">1</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>totalScheduledTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:01:00</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">2</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>analysisTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:00.18347</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">2</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>duration</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:08.965</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">2</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>finishingTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:00.00304</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">2</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>internalNetworkInputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>2418 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">2</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>outputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>101.00 bytes</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">2</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>peakTotalMemoryReservation</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>2917 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">2</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>physicalInputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>596 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">2</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>physicalWrittenDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>0.00 bytes</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">2</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>planningTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:00.17867</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">2</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>processedInputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>2416 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">2</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>rawInputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>596 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">2</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>totalBlockedTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:10:22.2</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">2</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>totalCpuTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:23.92</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">2</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>totalScheduledTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:58.28</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">3</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>analysisTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:00.12142</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">3</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>duration</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:06.964</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">3</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>finishingTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:00.00262</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">3</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>internalNetworkInputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>2418 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">3</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>outputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>101.00 bytes</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">3</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>peakTotalMemoryReservation</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>3706 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">3</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>physicalInputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>596 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">3</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>physicalWrittenDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>0.00 bytes</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">3</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>planningTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:00.2111</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">3</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>processedInputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>2416 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">3</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>rawInputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>596 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">3</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>totalBlockedTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:08:03.6</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">3</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>totalCpuTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:20.9</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">3</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>totalScheduledTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:46.58</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">4</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>analysisTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:00.12962</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">4</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>duration</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:08.806</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">4</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>finishingTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:00.00844</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">4</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>internalNetworkInputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>2418 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">4</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>outputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>101.00 bytes</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">4</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>peakTotalMemoryReservation</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>3006 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">4</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>physicalInputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>596 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">4</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>physicalWrittenDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>0.00 bytes</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">4</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>planningTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:00.19427</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">4</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>processedInputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>2416 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">4</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>rawInputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>596 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">4</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>totalBlockedTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:09:44.4</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">4</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>totalCpuTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:23.18</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">4</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>totalScheduledTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:01:07.8</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">5</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>analysisTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:00.11828</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">5</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>duration</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:07.402</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">5</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>finishingTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:00.00304</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">5</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>internalNetworkInputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>2418 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">5</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>outputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>101.00 bytes</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">5</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>peakTotalMemoryReservation</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>2906 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">5</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>physicalInputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>596 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">5</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>physicalWrittenDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>0.00 bytes</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">5</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>planningTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:00.16102</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">5</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>processedInputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>2416 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">5</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>rawInputDataSize</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>596 MB</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">5</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>totalBlockedTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:08:04.2</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">5</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>totalCpuTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:21.83</pre>
+            </td>
+            
+        </tr>
+        
+        <tr>
+            
+            <td class="align-left">
+                <pre class="numeric">5</pre>
+            </td>
+            
+            <td class="align-left">
+                <pre>totalScheduledTime</pre>
+            </td>
+            
+            <td class="align-right">
+                <pre>00:00:51.03</pre>
+            </td>
+            
+        </tr>
+        
+    </tbody>
+</table></p>
+
+</body>
+</html>
