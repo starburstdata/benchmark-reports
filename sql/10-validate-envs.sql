@@ -78,14 +78,15 @@ SELECT
   , array_to_string(env.attributes, E'\n') AS attributes_label
   , runs.sequence_id AS sequence_id
   , array_agg(DISTINCT runs.status) AS statuses_label
-  , count(DISTINCT runs.benchmark_name) AS benchmarks_num
-  , count(DISTINCT runs.full_query_name) AS queries_num
-  , count(DISTINCT runs.id) AS runs_num
-  , sum(s.num_executions) AS executions_num
-  , sum(s.num_invalid_executions) AS invalid_executions_num
-  , sum(s.num_measurements) AS measurements_num
-  , sum(s.num_outliers) AS outliers_num
-  , sum(s.num_driver_outliers) AS driver_outliers_num
+  -- technically these are metrics, but treat them as labels to avoid showing a chart for this query
+  , count(DISTINCT runs.benchmark_name) AS benchmarks_label
+  , count(DISTINCT runs.full_query_name) AS queries_label
+  , count(DISTINCT runs.id) AS runs_label
+  , sum(s.num_executions) AS executions_label
+  , sum(s.num_invalid_executions) AS invalid_executions_label
+  , sum(s.num_measurements) AS measurements_label
+  , sum(s.num_outliers) AS outliers_label
+  , sum(s.num_driver_outliers) AS driver_outliers_label
   , array_union_agg(s.names_outliers) AS metrics_with_outliers_label
 FROM environments env
 LEFT JOIN runs ON runs.environment_id = env.id
