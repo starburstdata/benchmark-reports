@@ -45,11 +45,12 @@ attributes AS (
 )
 SELECT
   format('<a href="envs/%s/env-details.html">%s</a>', env.id, env.name) AS environment
-  , count(*) FILTER (WHERE contains(runs.environment_ids, env.id)) AS runs_num
-  , count(*) FILTER (WHERE contains(runs.environment_ids, env.id) AND runs.status != 'ENDED') AS invalid_num
-  , count(*) FILTER (WHERE contains(runs.environment_ids, env.id) AND runs.status = 'ENDED' AND cardinality(runs.environment_ids) > 1) AS comparable_num
-  , count(*) FILTER (WHERE NOT contains(runs.environment_ids, env.id) AND runs.status = 'ENDED') AS missing_num
-  , count(*) FILTER (WHERE contains(runs.environment_ids, env.id) AND runs.status = 'ENDED' AND cardinality(runs.environment_ids) = 1) AS extra_num
+  -- technically these are metrics, but treat them as labels to avoid showing a chart for this query
+  , count(*) FILTER (WHERE contains(runs.environment_ids, env.id)) AS runs_label
+  , count(*) FILTER (WHERE contains(runs.environment_ids, env.id) AND runs.status != 'ENDED') AS invalid_label
+  , count(*) FILTER (WHERE contains(runs.environment_ids, env.id) AND runs.status = 'ENDED' AND cardinality(runs.environment_ids) > 1) AS comparable_label
+  , count(*) FILTER (WHERE NOT contains(runs.environment_ids, env.id) AND runs.status = 'ENDED') AS missing_label
+  , count(*) FILTER (WHERE contains(runs.environment_ids, env.id) AND runs.status = 'ENDED' AND cardinality(runs.environment_ids) = 1) AS extra_label
   , array_to_string(array_sort(array_subtraction(
         array_union_agg(runs.environment_names) FILTER (WHERE contains(runs.environment_ids, env.id) AND runs.status = 'ENDED' AND cardinality(runs.environment_ids) > 1),
         ARRAY[env.name])), E'\n') AS comparable_environments_label

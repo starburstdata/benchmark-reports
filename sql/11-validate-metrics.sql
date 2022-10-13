@@ -46,11 +46,12 @@ metrics AS (
 )
 SELECT
     m.name AS metric
-  , sum(s.num_executions) AS executions_num
-  , sum(s.num_invalid_executions) AS invalid_executions_num
-  , sum(s.num_measurements) AS measurements_num
-  , sum(s.num_outliers) AS outliers_num
-  , sum(s.num_driver_outliers) AS driver_outliers_num
+  -- technically these are metrics, but treat them as labels to avoid showing a chart for this query
+  , sum(s.num_executions) AS executions_label
+  , sum(s.num_invalid_executions) AS invalid_executions_label
+  , sum(s.num_measurements) AS measurements_label
+  , sum(s.num_outliers) AS outliers_label
+  , sum(s.num_driver_outliers) AS driver_outliers_label
 FROM metrics m
 LEFT JOIN execution_stats s ON s.metric_id = m.id
 GROUP BY 1
