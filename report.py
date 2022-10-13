@@ -204,7 +204,6 @@ def dump_envs_details(connection, sql, env_ids, basedir):
 
 
 def dump_env_details_to_file(prefix, details, connection, id):
-    logging.debug("Fetching results for: %s", details.file)
     result = connection.execute(text(details.query), id=id)
     headers = [dict(value=label_from_name(key), css_class=f'align-{align_from_name(key)}') for key in result.keys()]
     rows = [[dict(value=table_entry(row[i]), css_class=header['css_class']) for i, header in enumerate(headers)] for row in result.fetchall()]
@@ -237,7 +236,6 @@ def get_run_ids(connection, env_ids):
 
 def dump_run_details(connection, run_id, run_details, basedir):
     for run_report in run_details:
-        logging.debug("Fetching results for: %s", run_report.file)
         result = connection.execute(text(run_report.query), id=run_id)
         headers = [dict(value=label_from_name(key), css_class=f'align-{align_from_name(key)}') for key in result.keys()]
         headers[-1]['css_class'] = "align-right"  # make sure the last column is right-aligned
