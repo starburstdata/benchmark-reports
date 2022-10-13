@@ -429,6 +429,8 @@ def add_barchart(columns, rows, group):
     pivot_by = [key for key in columns if is_pivot(key)]
     metrics = [key for key in columns if is_metric(key)]
     labels = [key for key in columns if is_label(key)]
+    if not metrics:
+        return result
     if group == frozenset([("unit", "None")]):
         # TODO this should be used to generate groups/subplots
         logging.warning("Skipping group %s with %d rows", group, len(rows))
@@ -457,34 +459,10 @@ def add_barchart(columns, rows, group):
                 )
                 + " "
             )
-        x = []
-        for row in pivot_rows:
-            values = [str(row[key]) for key in dimensions]
-            x.append(", ".join(values))
-        text = [
-            "</br>".join(f"{label_from_name(key)}: {row[key]}" for key in labels)
-            for row in pivot_rows
-        ]
-        for metric in metrics:
-            if metric.endswith("_err"):
-                continue
-            label = label_from_name(metric)
-            error = None
-            if label in errors:
-                error = dict(type="data", array=errors.get(label))
-            y = [row[metric] for row in pivot_rows]
-            fig.add_trace(
-                go.Bar(
-                    name=label_prefix + label_from_name(metric),
-                    x=x,
-                    y=y,
-                    error_y=error,
-                    hovertext=text,
-                )
-            )
+        add_bar_trace(fig, pivot_rows, dimensions, metrics, errors, labels, label_prefix)
     # TODO using last metric as tickformat, is this correct?
     fig.update_layout(
-        yaxis_tickformat=column_format(metric, group),
+        yaxis_tickformat=column_format(metrics[-1], group),
         barmode="group",
         title=dict(text=", ".join(f"{key}: {value}" for key, value in group)),
     )
@@ -497,6 +475,34 @@ def row_in_group(row, group):
         if row[name] != value:
             return False
     return True
+
+
+def add_bar_trace(fig, rows, dimensions, metrics, errors, labels, label_prefix=""):
+    x = []
+    for row in rows:
+        values = [str(row[key]) for key in dimensions]
+        x.append(", ".join(values))
+    text = [
+        "</br>".join(f"{label_from_name(key)}: {row[key]}" for key in labels)
+        for row in rows
+    ]
+    for metric in metrics:
+        if metric.endswith("_err"):
+            continue
+        label = label_from_name(metric)
+        error = None
+        if label in errors:
+            error = dict(type="data", array=errors.get(label))
+        y = [row[metric] for row in rows]
+        fig.add_trace(
+            go.Bar(
+                name=label_prefix + label_from_name(metric),
+                x=x,
+                y=y,
+                error_y=error,
+                hovertext=text,
+            )
+        )
 
 
 def is_dimension(name):
