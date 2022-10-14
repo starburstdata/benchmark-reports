@@ -146,7 +146,9 @@ def print_report(connection, sql, environments, output, basedir=None):
     reports = add_figures(reports, connection, env_ids)
 
     logging.debug("Printing reports")
-    output.write(main_template.render(reports=reports, plotly_version=get_plotlyjs_version()))
+    output.write(
+        main_template.render(reports=reports, plotly_version=get_plotlyjs_version())
+    )
 
     if basedir is not None:
         dump_envs_details(connection, sql, env_ids, basedir)
@@ -463,7 +465,11 @@ def add_barchart(columns, rows, group):
     fig.update_layout(
         yaxis_tickformat=column_format(metrics[-1], group),
         barmode="group",
-        title=dict(text=", ".join(f"{label_from_name(key)}: {value}" for key, value in sorted(group))),
+        title=dict(
+            text=", ".join(
+                f"{label_from_name(key)}: {value}" for key, value in sorted(group)
+            )
+        ),
     )
     result.append(fig)
     return result
@@ -508,7 +514,16 @@ def is_dimension(name):
     """Is dimension based on the column name suffix"""
     suffix = name.split("_").pop()
     # TODO handle decimals other than 2
-    return suffix not in ("num2f", "num", "pct", "group", "unit", "err", "label", "pivot")
+    return suffix not in (
+        "num2f",
+        "num",
+        "pct",
+        "group",
+        "unit",
+        "err",
+        "label",
+        "pivot",
+    )
 
 
 def is_pivot(name):
