@@ -3,7 +3,7 @@
         <thead>
             <tr>
                 {% for header in headers %}
-                <th class="{{header['css_class']}}">{{ header['value'] }}</th>
+                <th class="{{ header['css_class'] }}">{{ header['value'] }}</th>
                 {% endfor %}
             </tr>
         </thead>
@@ -11,8 +11,8 @@
             {% for row in rows %}
             <tr>
                 {% for field in row %}
-                <td class="{{field['css_class']}}">
-                    {{ field['value']|safe }}
+                <td class="{{ field['css_class'] }}">
+                    {{ field['value'] | safe }}
                 </td>
                 {% endfor %}
             </tr>
