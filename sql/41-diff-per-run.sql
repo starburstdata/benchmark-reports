@@ -153,7 +153,7 @@ SELECT
   , nullif(format('<a href="runs/%s/index.html">%s</a>', id, id), '<a href="runs//index.html"></a>') AS run_number_label
   , env_link AS environment_pivot
   , metric
-  , unit
+  , unit AS unit_group
   , format_metric(diff, unit) AS diff_label
   , format_percent(diff_pct) AS diff_pct_label
   , mean AS mean_unit

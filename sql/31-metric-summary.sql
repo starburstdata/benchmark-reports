@@ -52,8 +52,8 @@ SELECT
   -- get the order of magnitude of the range of values of all means of a particular metric,
   -- so charts can be grouped by it and avoid having extremely low or high values
   -- displayed using the same scale
-  , cast(floor(log10(max(r.mean) OVER (PARTITION BY r.name) - min(r.mean) OVER (PARTITION BY r.name))) as integer) AS group
-  , r.unit
+  , cast(floor(log10(max(r.mean) OVER (PARTITION BY r.name) - min(r.mean) OVER (PARTITION BY r.name))) as integer) AS magnitude_group
+  , r.unit AS unit_group
   , r.mean AS mean_unit
   , r.stddev AS mean_err
   , cast(stddev_pct AS decimal(5,2)) AS err_pct_label

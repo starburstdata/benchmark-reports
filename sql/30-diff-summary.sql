@@ -108,7 +108,7 @@ attributes AS (
 SELECT
     d.metric AS metric
   , d.scope AS scope_label
-  , d.unit AS unit
+  , d.unit AS unit_group
   , s.bucket AS bucket
   , range AS diff_pct_range
   , coalesce(freq, 0) AS occurrences_num
