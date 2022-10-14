@@ -86,7 +86,9 @@ charts, only in tables.
 
 Dimension columns uniquely identify a single metric value, so on bar charts
 they're joined with a comma. If a dimension column name ends with `_pivot`,
-it'll be used to additionally group metrics on bar charts.
+it'll be used to additionally group metrics on bar charts. If it ends with
+`_group`, there will be a separate chart for every combination of values of
+such group columns.
 
 ## Development
 

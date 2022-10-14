@@ -574,7 +574,9 @@ def column_format(name, group):
 
 
 def format_unit(group):
-    unit = ([value for name, value in group if name == "unit_group"] or [""]).pop()
+    unit = (
+        [value for name, value in group if name in ("unit", "unit_group")] or [""]
+    ).pop()
 
     match unit:
         case "MILLISECONDS":
