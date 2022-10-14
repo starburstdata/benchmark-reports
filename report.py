@@ -388,15 +388,18 @@ def figures(columns, rows):
 
 
 def add_table(columns, rows, group):
-    # TODO link some (id?) columns
     headers = [
-        dict(value=label_from_name(key), css_class=f"align-{align_from_name(key)}")
+        dict(
+            name=key,
+            value=label_from_name(key),
+            css_class=f"align-{align_from_name(key)}",
+        )
         for key in columns
     ]
     rows = [
         [
-            dict(value=table_entry(row[i]), css_class=header["css_class"])
-            for i, header in enumerate(headers)
+            dict(value=table_entry(row[header["name"]]), css_class=header["css_class"])
+            for header in headers
         ]
         for row in rows
     ]
