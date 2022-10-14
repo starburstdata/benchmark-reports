@@ -120,7 +120,7 @@ SELECT
   , regexp_replace(query_name, '^.*/([^/]*?)(\.[^/.]+)?$', '\1') AS query_name
   , metric
   , metric_scope
-  , unit
+  , unit AS unit_group
   , format_metric(diff, unit) AS diff_label
   , format_percent(diff_pct) AS diff_pct_label
   , left_mean AS left_mean_unit

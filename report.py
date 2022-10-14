@@ -368,11 +368,7 @@ def figures(columns, rows):
 
     result = []
     # TODO if there are too many X values, split last ones into subplots until threshold
-    group_by = []
-    if "group" in columns:
-        group_by.append("group")
-    if "unit" in columns:
-        group_by.append("unit")
+    group_by = [name for name in columns if name.endswith("_group")]
     groups = set(frozenset(("", "")))
     if group_by:
         # groups are sets of tuples, because dicts are not hashable
@@ -432,7 +428,7 @@ def add_barchart(columns, rows, group):
     labels = [key for key in columns if is_label(key)]
     if not metrics:
         return result
-    if group == frozenset([("unit", "None")]):
+    if group == frozenset([("unit_group", "None")]):
         # TODO this should be used to generate groups/subplots
         logging.warning("Skipping group %s with %d rows", group, len(rows))
         return result
@@ -467,7 +463,7 @@ def add_barchart(columns, rows, group):
     fig.update_layout(
         yaxis_tickformat=column_format(metrics[-1], group),
         barmode="group",
-        title=dict(text=", ".join(f"{key}: {value}" for key, value in sorted(group))),
+        title=dict(text=", ".join(f"{label_from_name(key)}: {value}" for key, value in sorted(group))),
     )
     result.append(fig)
     return result
@@ -512,7 +508,7 @@ def is_dimension(name):
     """Is dimension based on the column name suffix"""
     suffix = name.split("_").pop()
     # TODO handle decimals other than 2
-    return suffix not in ("num2f", "num", "pct", "unit", "err", "label", "pivot")
+    return suffix not in ("num2f", "num", "pct", "group", "unit", "err", "label", "pivot")
 
 
 def is_pivot(name):
@@ -538,7 +534,7 @@ def label_from_name(name):
     """Label from column name"""
     words = name.split("_")
     # Note: missing the err suffix
-    if words[-1] in ("num2f", "num", "pct", "unit", "label", "pivot"):
+    if words[-1] in ("num2f", "num", "pct", "group", "unit", "label", "pivot"):
         words.pop()
     return " ".join(word.capitalize() for word in words)
 
@@ -563,7 +559,7 @@ def column_format(name, group):
 
 
 def format_unit(group):
-    unit = ([value for name, value in group if name == "unit"] or [""]).pop()
+    unit = ([value for name, value in group if name == "unit_group"] or [""]).pop()
 
     match unit:
         case "MILLISECONDS":
