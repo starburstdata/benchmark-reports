@@ -110,7 +110,7 @@ def main():
     basedir = None
     if args.output != "-":
         output = open(args.output, "w")
-        basedir = path.abspath(path.dirname(args.output))
+        basedir = path.dirname(args.output)
 
     print_report(connection, args.sql, args.environments, output, basedir=basedir)
 
@@ -142,7 +142,7 @@ def print_report(connection, sql, environments, output, basedir=None):
 
     logging.debug("Setup done, generating reports")
     reports = [read_report(basedir, f) for f in input_files]
-    reports = add_figures(reports, connection, env_ids, basedir)
+    reports = add_figures(reports, connection, env_ids)
 
     logging.debug("Printing reports")
     output.write(main_template.render(reports=reports))
@@ -260,7 +260,8 @@ class Report:
     def __post_init__(self):
         self.file_url = f"https://github.com/starburstdata/benchmark-reports/blob/{sha()}/{self.file}"
         self.slug = slugify(self.title)
-        if self.basedir:
+        self.results_file = None
+        if self.basedir is not None:
             self.results_file = path.join(self.basedir, self.slug + ".csv")
 
 
@@ -340,7 +341,7 @@ def read_query(file):
     return desc.strip(), query.strip(), title.strip()
 
 
-def add_figures(reports, connection, env_ids, basedir):
+def add_figures(reports, connection, env_ids):
     """Add figures to reports by executing queries"""
     for entry in reports:
         logging.debug("Fetching results for: %s", entry.file)
@@ -351,9 +352,9 @@ def add_figures(reports, connection, env_ids, basedir):
             continue
 
         rows = result.fetchall()
-        if basedir:
+        if entry.results_file:
             # write results to a csv file
-            with open(path.join(basedir, entry.results_file), "w") as f:
+            with open(entry.results_file, "w") as f:
                 writer = csv.writer(f)
                 writer.writerow([name for name in result.keys()])
                 writer.writerows(rows)
