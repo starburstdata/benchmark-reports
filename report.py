@@ -28,10 +28,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.sql.expression import text
 from testcontainers.postgres import PostgresContainer
 
-jinja_env = Environment(
-    loader=PackageLoader("report"),
-    autoescape=select_autoescape()
-)
+jinja_env = Environment(loader=PackageLoader("report"), autoescape=select_autoescape())
 table_template = jinja_env.get_template("table_template.html")
 env_template = jinja_env.get_template("env_template.html")
 run_template = jinja_env.get_template("run_template.html")
@@ -45,7 +42,6 @@ AND environment_id = ANY(:env_ids)
 ORDER BY id
 ;
 """
-
 
 
 def main():
@@ -107,7 +103,7 @@ def main():
     output = sys.stdout
     basedir = None
     if args.output != "-":
-        output = open(args.output, 'w')
+        output = open(args.output, "w")
         basedir = path.abspath(path.dirname(args.output))
 
     print_report(connection, args.sql, args.environments, output, basedir=basedir)
@@ -145,12 +141,14 @@ def print_report(connection, sql, environments, output, basedir=None):
     logging.debug("Printing reports")
     # TODO use a template engine like Jinja2, add intro with links to data model,
     # explain why some metrics are selected (duration, mem, total cpu)
-    output.write(f'<html><head><meta charset="utf-8" /><style>{table_css.render()}</style></head><body>')
+    output.write(
+        f'<html><head><meta charset="utf-8" /><style>{table_css.render()}</style></head><body>'
+    )
     output.write(
         '<p><a href="https://github.com/trinodb/benchto/blob/master/docs/data-model/README.md">Benchto Data Model</a>'
     )
     output.write('<div style="display: none;">')
-    output.write(go.Figure().to_html(full_html=False, include_plotlyjs='cdn'))
+    output.write(go.Figure().to_html(full_html=False, include_plotlyjs="cdn"))
     output.write("</div>")
     output.write("<h2>Table of Contents</h2>")
     output.write("<ol>")
@@ -171,14 +169,10 @@ def print_report(connection, sql, environments, output, basedir=None):
         output.write(f'<a href="{entry.file_url}">Query</a>')
         if basedir:
             file = path.join(basedir, entry.results_file)
-            output.write(
-                f', results: <a href="{file}">{entry.results_file}</a>'
-            )
-        output.write('</p>')
+            output.write(f', results: <a href="{file}">{entry.results_file}</a>')
+        output.write("</p>")
         for fig in entry.figures:
-            output.write(
-                fig.to_html(full_html=False, include_plotlyjs=False)
-            )
+            output.write(fig.to_html(full_html=False, include_plotlyjs=False))
 
     if basedir is not None:
         dump_envs_details(connection, sql, env_ids, basedir)
@@ -205,14 +199,21 @@ def dump_envs_details(connection, sql, env_ids, basedir):
 
 def dump_env_details_to_file(prefix, details, connection, id):
     result = connection.execute(text(details.query), id=id)
-    headers = [dict(value=label_from_name(key), css_class=f'align-{align_from_name(key)}') for key in result.keys()]
-    rows = [[dict(value=table_entry(row[i]), css_class=header['css_class']) for i, header in enumerate(headers)] for row in result.fetchall()]
+    headers = [
+        dict(value=label_from_name(key), css_class=f"align-{align_from_name(key)}")
+        for key in result.keys()
+    ]
+    rows = [
+        [
+            dict(value=table_entry(row[i]), css_class=header["css_class"])
+            for i, header in enumerate(headers)
+        ]
+        for row in result.fetchall()
+    ]
     # write table to a html file
     os.makedirs(prefix, exist_ok=True)
     with open(os.path.join(prefix, details.results_file), "w") as f:
-        f.write(
-            env_template.render(headers=headers, rows=rows)
-        )
+        f.write(env_template.render(headers=headers, rows=rows))
 
 
 def dump_runs_details(connection, sql, env_ids, basedir):
@@ -237,9 +238,20 @@ def get_run_ids(connection, env_ids):
 def dump_run_details(connection, run_id, run_details, basedir):
     for run_report in run_details:
         result = connection.execute(text(run_report.query), id=run_id)
-        headers = [dict(value=label_from_name(key), css_class=f'align-{align_from_name(key)}') for key in result.keys()]
-        headers[-1]['css_class'] = "align-right"  # make sure the last column is right-aligned
-        rows = [[dict(value=table_entry(row[i]), css_class=header['css_class']) for i, header in enumerate(headers)] for row in result.fetchall()]
+        headers = [
+            dict(value=label_from_name(key), css_class=f"align-{align_from_name(key)}")
+            for key in result.keys()
+        ]
+        headers[-1][
+            "css_class"
+        ] = "align-right"  # make sure the last column is right-aligned
+        rows = [
+            [
+                dict(value=table_entry(row[i]), css_class=header["css_class"])
+                for i, header in enumerate(headers)
+            ]
+            for row in result.fetchall()
+        ]
         run_report.contents = table_template.render(headers=headers, rows=rows)
     # Create summary index.html for a whole run
     os.makedirs(os.path.join(basedir, "runs", str(run_id)), exist_ok=True)
@@ -315,7 +327,7 @@ def sha():
         repo = git.Repo(search_parent_directories=True)
     except git.InvalidGitRepositoryError:
         try:
-            with open('version', 'r') as f:
+            with open("version", "r") as f:
                 return f.read()
         except FileNotFoundError:
             return "main"
@@ -402,8 +414,17 @@ def figures(columns, rows):
 
 def add_table(columns, rows, group):
     # TODO link some (id?) columns
-    headers = [dict(value=label_from_name(key), css_class=f'align-{align_from_name(key)}') for key in columns]
-    rows = [[dict(value=table_entry(row[i]), css_class=header['css_class']) for i, header in enumerate(headers)] for row in rows]
+    headers = [
+        dict(value=label_from_name(key), css_class=f"align-{align_from_name(key)}")
+        for key in columns
+    ]
+    rows = [
+        [
+            dict(value=table_entry(row[i]), css_class=header["css_class"])
+            for i, header in enumerate(headers)
+        ]
+        for row in rows
+    ]
     fig = Table(headers=headers, rows=rows)
     return [fig]
 
@@ -413,12 +434,14 @@ def table_entry(item):
         return None
     if isinstance(item, numbers.Number):
         return f'<pre class="numeric">{ item }</pre>'
-    trimmed = str(item).strip('\n')
-    if trimmed.endswith('</a>'):
+    trimmed = str(item).strip("\n")
+    if trimmed.endswith("</a>"):
         return trimmed
-    if trimmed.count('\n') < 5:
-        return f'<pre>{ trimmed }</pre>'
-    return '<details><summary>{}</summary><pre>{}</pre></details>'.format(trimmed[:trimmed.find("\n")], trimmed)
+    if trimmed.count("\n") < 5:
+        return f"<pre>{ trimmed }</pre>"
+    return "<details><summary>{}</summary><pre>{}</pre></details>".format(
+        trimmed[: trimmed.find("\n")], trimmed
+    )
 
 
 def add_barchart(columns, rows, group):
@@ -457,7 +480,9 @@ def add_barchart(columns, rows, group):
                 )
                 + " "
             )
-        add_bar_trace(fig, pivot_rows, dimensions, metrics, errors, labels, label_prefix)
+        add_bar_trace(
+            fig, pivot_rows, dimensions, metrics, errors, labels, label_prefix
+        )
     # TODO using last metric as tickformat, is this correct?
     fig.update_layout(
         yaxis_tickformat=column_format(metrics[-1], group),
