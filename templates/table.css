@@ -1,3 +1,7 @@
+div.styled-table {
+    max-height: 650px;
+    overflow-y: auto;
+}
 .styled-table {
     border-collapse: collapse;
     margin: 1.5em 0;
@@ -16,8 +20,14 @@
     font-variant-numeric: tabular-nums;
 }
 .styled-table thead tr {
+    position: sticky;
+    top: 0;
     background-color: #009879;
     color: #ffffff;
+}
+.styled-table thead th {
+    position: sticky;
+    top: 0;
 }
 .styled-table th,
 .styled-table td {
