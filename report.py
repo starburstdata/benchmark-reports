@@ -29,9 +29,9 @@ from sqlalchemy.sql.expression import text
 from testcontainers.postgres import PostgresContainer
 
 jinja_env = Environment(loader=PackageLoader("report"), autoescape=select_autoescape())
-table_template = jinja_env.get_template("table_template.html")
-env_template = jinja_env.get_template("env_template.html")
-run_template = jinja_env.get_template("run_template.html")
+table_template = jinja_env.get_template("table.html")
+env_template = jinja_env.get_template("env.html")
+run_template = jinja_env.get_template("run.html")
 table_css = jinja_env.get_template("table.css")
 
 runs_query = """
