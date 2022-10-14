@@ -1,0 +1,33 @@
+<html>
+<head>
+    <meta charset="utf-8" />
+    <script src="https://cdn.plot.ly/plotly-2.14.0.min.js"></script>
+    <style>
+        {% include "table.css" %}
+    </style>
+</head>
+<body>
+    <p>
+        <a href="https://github.com/trinodb/benchto/blob/master/docs/data-model/README.md">Benchto Data Model</a>
+    </p>
+    <h2>Table of Contents</h2>
+    <ol>
+{% for report in reports %}
+        <li><a href="#{{ report.slug }}">{{ report.title }}</a></li>
+{% endfor %}
+    </ol>
+{% for report in reports if report.figures %}
+    <h2 id="{{ report.slug }}">{{ report.title }}</h2>
+    <p>{{ report.desc }}</p>
+    <p>
+        <a href="{{ report.file_url }}">Query</a>
+        {% if report.results_file %}
+            , <a href="{{ report.results_file }}">raw data</a>
+        {% endif %}
+    </p>
+    {% for fig in report.figures %}
+        {{ fig.to_html(full_html=False, include_plotlyjs=False) | safe }}
+    {% endfor %}
+{% endfor %}
+</body>
+</html>

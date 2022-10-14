@@ -28,7 +28,13 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.sql.expression import text
 from testcontainers.postgres import PostgresContainer
 
-jinja_env = Environment(loader=PackageLoader("report"), autoescape=select_autoescape())
+jinja_env = Environment(
+    loader=PackageLoader("report"),
+    autoescape=select_autoescape(),
+    trim_blocks=True,
+    lstrip_blocks=True,
+)
+main_template = jinja_env.get_template("main.html")
 table_template = jinja_env.get_template("table.html")
 env_template = jinja_env.get_template("env.html")
 run_template = jinja_env.get_template("run.html")
@@ -135,50 +141,16 @@ def print_report(connection, sql, environments, output, basedir=None):
     env_ids = [r["id"] for r in rows]
 
     logging.debug("Setup done, generating reports")
-    reports = [read_report(f) for f in input_files]
+    reports = [read_report(basedir, f) for f in input_files]
     reports = add_figures(reports, connection, env_ids, basedir)
 
     logging.debug("Printing reports")
-    # TODO use a template engine like Jinja2, add intro with links to data model,
-    # explain why some metrics are selected (duration, mem, total cpu)
-    output.write(
-        f'<html><head><meta charset="utf-8" /><style>{table_css.render()}</style></head><body>'
-    )
-    output.write(
-        '<p><a href="https://github.com/trinodb/benchto/blob/master/docs/data-model/README.md">Benchto Data Model</a>'
-    )
-    output.write('<div style="display: none;">')
-    output.write(go.Figure().to_html(full_html=False, include_plotlyjs="cdn"))
-    output.write("</div>")
-    output.write("<h2>Table of Contents</h2>")
-    output.write("<ol>")
-    for entry in reports:
-        if not entry.figures:
-            # some reports might not create a figure
-            continue
-        output.write(f'<li><a href="#{entry.slug}">{entry.title}</a></li>')
-    for entry in reports:
-        if not entry.figures:
-            # some reports might not create a figure
-            continue
-
-        output.write("</ol>")
-        output.write(f'<h2 id="{entry.slug}">{entry.title}</h2>')
-        output.write(f"<p>{entry.desc}</p>")
-        output.write("<p>")
-        output.write(f'<a href="{entry.file_url}">Query</a>')
-        if basedir:
-            file = path.join(basedir, entry.results_file)
-            output.write(f', results: <a href="{file}">{entry.results_file}</a>')
-        output.write("</p>")
-        for fig in entry.figures:
-            output.write(fig.to_html(full_html=False, include_plotlyjs=False))
+    output.write(main_template.render(reports=reports))
 
     if basedir is not None:
         dump_envs_details(connection, sql, env_ids, basedir)
         dump_runs_details(connection, sql, env_ids, basedir)
 
-    output.write("</body></html>")
     logging.debug("All done")
 
 
@@ -274,6 +246,7 @@ class Table:
 class Report:
     """Report of performance test results."""
 
+    basedir: str
     file: str
     file_url: str = field(init=False)
     results_file: str = field(init=False)
@@ -287,7 +260,8 @@ class Report:
     def __post_init__(self):
         self.file_url = f"https://github.com/starburstdata/benchmark-reports/blob/{sha()}/{self.file}"
         self.slug = slugify(self.title)
-        self.results_file = self.slug + ".csv"
+        if self.basedir:
+            self.results_file = path.join(self.basedir, self.slug + ".csv")
 
 
 @dataclass
@@ -344,9 +318,9 @@ def read_run_details(file):
     return RunDetails(file, query, title, desc)
 
 
-def read_report(file):
+def read_report(basedir, file):
     desc, query, title = read_query(file)
-    return Report(file, query, title, desc)
+    return Report(basedir, file, query, title, desc)
 
 
 def read_query(file):
@@ -363,7 +337,7 @@ def read_query(file):
                     desc += line.lstrip("-")
                 continue
             query += line
-    return desc, query, title
+    return desc.strip(), query.strip(), title.strip()
 
 
 def add_figures(reports, connection, env_ids, basedir):
