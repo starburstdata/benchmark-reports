@@ -367,21 +367,23 @@ def figures(columns, rows):
     """Figure from data rows"""
 
     result = []
-    # TODO handle different scales - split into subplots
     # TODO if there are too many X values, split last ones into subplots until threshold
     group_by = []
-    groups = set(frozenset(("", "")))
+    if "group" in columns:
+        group_by.append("group")
     if "unit" in columns:
-        group_by = ["unit"]
+        group_by.append("unit")
+    groups = set(frozenset(("", "")))
+    if group_by:
         # groups are sets of tuples, because dicts are not hashable
         groups = set(
             frozenset((key, str(row[key])) for key in group_by) for row in rows
         )
 
     for group in sorted(groups, key=sorted):
-        logging.debug("Rendering group %s", group)
         names = [name for name in columns if name not in group_by]
         group_rows = [row for row in rows if row_in_group(row, group)]
+        logging.debug("Rendering group %s with %d rows", group, len(group_rows))
         result += add_table(names, group_rows, group)
         result += add_barchart(names, group_rows, group)
     return result
@@ -446,7 +448,6 @@ def add_barchart(columns, rows, group):
         frozenset((key, str(row[key])) for key in pivot_by) for row in rows
     )
     for pivot_set in sorted(pivot_sets, key=sorted):
-        logging.debug("Rendering pivot set %s", pivot_set)
         pivot_rows = rows
         label_prefix = ""
         if pivot_set:
@@ -458,6 +459,7 @@ def add_barchart(columns, rows, group):
                 )
                 + " "
             )
+        logging.debug("Rendering pivot set %s with %d rows", pivot_set, len(pivot_rows))
         add_bar_trace(
             fig, pivot_rows, dimensions, metrics, errors, labels, label_prefix
         )
@@ -465,7 +467,7 @@ def add_barchart(columns, rows, group):
     fig.update_layout(
         yaxis_tickformat=column_format(metrics[-1], group),
         barmode="group",
-        title=dict(text=", ".join(f"{key}: {value}" for key, value in group)),
+        title=dict(text=", ".join(f"{key}: {value}" for key, value in sorted(group))),
     )
     result.append(fig)
     return result
@@ -473,7 +475,7 @@ def add_barchart(columns, rows, group):
 
 def row_in_group(row, group):
     for name, value in group:
-        if row[name] != value:
+        if str(row[name]) != value:
             return False
     return True
 
