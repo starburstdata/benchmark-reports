@@ -21,6 +21,7 @@ from os import environ, path
 
 import git
 import plotly.graph_objects as go
+from plotly.offline import get_plotlyjs_version
 from jinja2 import Environment, select_autoescape, PackageLoader
 from slugify import slugify
 from sqlalchemy import create_engine
@@ -145,7 +146,7 @@ def print_report(connection, sql, environments, output, basedir=None):
     reports = add_figures(reports, connection, env_ids)
 
     logging.debug("Printing reports")
-    output.write(main_template.render(reports=reports))
+    output.write(main_template.render(reports=reports, plotly_version=get_plotlyjs_version()))
 
     if basedir is not None:
         dump_envs_details(connection, sql, env_ids, basedir)
@@ -214,9 +215,8 @@ def dump_run_details(connection, run_id, run_details, basedir):
             dict(value=label_from_name(key), css_class=f"align-{align_from_name(key)}")
             for key in result.keys()
         ]
-        headers[-1][
-            "css_class"
-        ] = "align-right"  # make sure the last column is right-aligned
+        # make sure the last column is right-aligned
+        headers[-1]["css_class"] = "align-right"
         rows = [
             [
                 dict(value=table_entry(row[i]), css_class=header["css_class"])
