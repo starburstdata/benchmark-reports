@@ -1,20 +1,11 @@
 -- Run execution measurements
 -- Reads all names and aggregated min, max, mean, stddev values of all execution metrics of a particular benchmark run.
 WITH
-measurements AS (
-    SELECT
-      v.id
-         , substr(v.name, strpos(v.name, '-') + 1) AS name
-         , v.unit
-         , v.value
-         , CASE WHEN v.name LIKE '%-%' THEN split_part(v.name, '-', 1) ELSE 'driver' END AS scope
-    FROM measurements v
-    GROUP BY v.id, v.name, v.unit, v.value
-)
-, execution_devs AS (
+execution_devs AS (
     SELECT
         runs.id AS run_id
-      , m.name
+      , substr(m.name, strpos(m.name, '-') + 1) AS name
+      , CASE WHEN m.name LIKE '%-%' THEN split_part(m.name, '-', 1) ELSE 'driver' END AS scope
       , m.unit
       , avg(m.value) AS mean
       , min(m.value) AS min
@@ -25,14 +16,14 @@ measurements AS (
     JOIN benchmark_runs runs ON runs.id = ex.benchmark_run_id
     JOIN measurements m ON m.id = em.measurement_id
     WHERE runs.id = :id
-    GROUP BY 1, 2, 3
+    GROUP BY 1, 2, 3, 4
 )
 SELECT
-    name as "Measurement name"
-  --, unit
+    name as "Metric name"
+  , scope as "Metric scope"
   , format_metric(mean, unit) AS mean
   , '±' || format_metric(stddev, unit) || ' (' || round(cast(stddev/nullif(cast(mean as float), 0) as numeric), 2) || '%)' AS stddev
   , format_metric(min, unit) AS min
   , format_metric(max, unit) AS max
 FROM execution_devs
-ORDER BY name, unit, mean
+ORDER BY name, scope, unit, mean
