@@ -49,6 +49,10 @@ SELECT
   , r.benchmark_name AS benchmark_pivot
   , r.scope AS metric_scope
   , r.name AS metric_name
+  -- get the order of magnitude of the range of values of all means of a particular metric,
+  -- so charts can be grouped by it and avoid having extremely low or high values
+  -- displayed using the same scale
+  , cast(floor(log10(max(r.mean) OVER (PARTITION BY r.name) - min(r.mean) OVER (PARTITION BY r.name))) as integer) AS group
   , r.unit
   , r.mean AS mean_unit
   , r.stddev AS mean_err
