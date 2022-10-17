@@ -26,6 +26,12 @@ jobs:
         git config user.email "releases@starburst.io"
         git config user.name "Starburst release automation"
 
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
     - name: Log in to the Container registry
       # locked to 2 commits after https://github.com/docker/login-action/releases/tag/v2.0.0
       uses: docker/login-action@d398f07826957cd0a18ea1b059cf1207835e60bc
@@ -57,10 +63,16 @@ jobs:
           echo "Skipping the release step because not starting from a snapshot version"
           exit 0
         fi
-        docker build -t $repository:$VERSION .
-        docker push $repository:$VERSION
-        docker tag $repository:$VERSION $repository:latest
-        docker push $repository:latest
+        docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            -t "$repository:$VERSION" \
+            --push \
+            .
+        docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            -t "$repository:latest" \
+            --push \
+            .
 
     - name: Set next development version
       run: |
