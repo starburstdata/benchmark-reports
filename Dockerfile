@@ -1,5 +1,10 @@
 FROM python:3.10
 
+RUN apt-get update && apt-get install -y \
+    zstd \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN mkdir -p /src /out
 WORKDIR /src
 ADD requirements.txt .

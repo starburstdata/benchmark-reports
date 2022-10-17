@@ -18,7 +18,7 @@ properties AS (
 )
 SELECT
     name
-  , value
+  , value AS value_num
 FROM properties
 ORDER BY type, name, value
 ;

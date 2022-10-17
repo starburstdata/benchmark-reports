@@ -22,7 +22,7 @@ from os import environ, path
 import git
 import plotly.graph_objects as go
 from plotly.offline import get_plotlyjs_version
-from jinja2 import Environment, select_autoescape, PackageLoader
+from jinja2 import Environment, select_autoescape, PackageLoader, Template
 from slugify import slugify
 from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
@@ -174,21 +174,12 @@ def dump_envs_details(connection, sql, env_ids, basedir):
 
 def dump_env_details_to_file(prefix, details, connection, id):
     result = connection.execute(text(details.query), id=id)
-    headers = [
-        dict(value=label_from_name(key), css_class=f"align-{align_from_name(key)}")
-        for key in result.keys()
-    ]
-    rows = [
-        [
-            dict(value=table_entry(row[i]), css_class=header["css_class"])
-            for i, header in enumerate(headers)
-        ]
-        for row in result.fetchall()
-    ]
+    figures = add_table(result.keys(), result.fetchall(), template=env_template)
     # write table to a html file
     os.makedirs(prefix, exist_ok=True)
     with open(os.path.join(prefix, details.results_file), "w") as f:
-        f.write(env_template.render(headers=headers, rows=rows))
+        for fig in figures:
+            f.write(fig.to_html())
 
 
 def dump_runs_details(connection, sql, env_ids, basedir):
@@ -213,24 +204,14 @@ def get_run_ids(connection, env_ids):
 def dump_run_details(connection, run_id, run_details, basedir):
     for run_report in run_details:
         result = connection.execute(text(run_report.query), id=run_id)
-        headers = [
-            dict(value=label_from_name(key), css_class=f"align-{align_from_name(key)}")
-            for key in result.keys()
-        ]
-        # make sure the last column is right-aligned
-        headers[-1]["css_class"] = "align-right"
-        rows = [
-            [
-                dict(value=table_entry(row[i]), css_class=header["css_class"])
-                for i, header in enumerate(headers)
-            ]
-            for row in result.fetchall()
-        ]
-        run_report.contents = table_template.render(headers=headers, rows=rows)
+        figures = add_table(result.keys(), result.fetchall())
+        run_report.contents = ""
+        for fig in figures:
+            run_report.contents += fig.to_html()
     # Create summary index.html for a whole run
     os.makedirs(os.path.join(basedir, "runs", str(run_id)), exist_ok=True)
     with open(os.path.join(basedir, "runs", str(run_id), "index.html"), "w") as f:
-        f.write(run_template.render(run_id=run_id, reports=run_details, sha=sha()))
+        f.write(run_template.render(run_id=run_id, reports=run_details))
 
 
 @dataclass(init=True)
@@ -239,9 +220,10 @@ class Table:
 
     headers: dict = field(default_factory=dict)
     rows: list = field(default_factory=list)
+    template: Template = field(default_factory=table_template)
 
     def to_html(self, **kwargs):
-        return table_template.render(headers=self.headers, rows=self.rows)
+        return self.template.render(headers=self.headers, rows=self.rows)
 
 
 @dataclass
@@ -296,6 +278,7 @@ class RunDetails:
 
     def __post_init__(self):
         self.slug = slugify(self.title)
+        self.contents = ""
 
 
 @cache
@@ -387,7 +370,7 @@ def figures(columns, rows):
     return result
 
 
-def add_table(columns, rows, group):
+def add_table(columns, rows, group=None, template=table_template):
     headers = [
         dict(
             name=key,
@@ -403,7 +386,7 @@ def add_table(columns, rows, group):
         ]
         for row in rows
     ]
-    fig = Table(headers=headers, rows=rows)
+    fig = Table(headers=headers, rows=rows, template=template)
     return [fig]
 
 
@@ -549,7 +532,15 @@ def label_from_name(name):
     """Label from column name"""
     words = name.split("_")
     # Note: missing the err suffix
-    if words[-1] in ("num2f", "num", "pct", "group", "unit", "label", "pivot"):
+    if words[-1] in (
+        "num2f",
+        "num",
+        "pct",
+        "group",
+        "unit",
+        "label",
+        "pivot",
+    ):
         words.pop()
     return " ".join(word.capitalize() for word in words)
 
@@ -612,10 +603,19 @@ class TestReport(unittest.TestCase):
             print_report(engine.connect(), "sql", "%", output)
             actual = output.getvalue()
             # replace the parts that are expected to always change to make the diff more meaningful
+            # replace UIDs with their number of occurrence in the file, and git SHAs with an x
+            uids = {}
+
+            def replacement(exp):
+                uid = exp.groups()[0]
+                if uid not in uids:
+                    uids[uid] = len(uids)
+                return f"{uids[uid]:08}-1111-1111-1111-222222222222"
+
             replacements = [
                 (
-                    r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
-                    "00000000-1111-1111-1111-222222222222",
+                    r"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})",
+                    replacement,
                 ),
                 (r"benchmark-reports/blob/[0-9a-f]{40}/", "benchmark-reports/blob/x/"),
             ]

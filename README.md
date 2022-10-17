@@ -13,8 +13,19 @@ docker run -it --rm \
   benchmark-reports:latest
 ```
 
-Set up the Python virtual environment and install dependencies, this is only
-required once:
+Since the output directory can get rather big, it's best to compress it using
+the Zstandard method. Using GNU TAR:
+```bash
+ZST_CLEVEL=10 tar --zstd -cvf out.tar.zst out
+```
+
+Using BSD TAR (on MacOS):
+```bash
+tar --zstd --options zstd:compression-level=10 -cvf out.tar.zst out
+```
+
+To run it without a container, set up the Python virtual environment and
+install dependencies. This is only required once:
 ```bash
 python3 -mvenv venv
 source venv/bin/activate
@@ -54,15 +65,15 @@ the following conventions:
 
 There are three kinds of columns recognized:
 1. Metrics - their column name must end with the following suffix: `num2f`,
-   `num`, `pct`, `unit`, `err`.
+   `num`, `pct`, `unit`, `err`;
 1. Labels - must end with `_label`. Note that their values are not formatted,
-   so any required formatting should be applied in the query itself.
+   so any required formatting should be applied in the query itself;
 1. Dimensions - columns without any of the suffixes mentioned above.
 
 Metric columns are always aligned right and formatted according the their
-suffix.
-* `num` formats the value as an integer number.
-* `num2f` formats the value as a decimal, rounded 2 decimal places.
+suffix:
+* `num` doesn't apply any formatting, can be used for integer numbers,
+* `num2f` formats the value as a decimal, rounded 2 decimal places,
 * `pct` formats the value as a percent (rounded to 2 decimal places).
 
 If the suffix is `unit`, there should be a dimension columns named `unit` and

@@ -19,11 +19,11 @@ execution_devs AS (
     GROUP BY 1, 2, 3, 4
 )
 SELECT
-    name as "Metric name"
-  , scope as "Metric scope"
-  , format_metric(mean, unit) AS mean
-  , '±' || format_metric(stddev, unit) || ' (' || round(cast(stddev/nullif(cast(mean as float), 0) as numeric), 2) || '%)' AS stddev
-  , format_metric(min, unit) AS min
-  , format_metric(max, unit) AS max
+    name as metric_name
+  , scope as metric_scope
+  , format_metric(mean, unit) AS mean_num
+  , '±' || format_metric(stddev, unit) || ' (' || round(cast(stddev/nullif(cast(mean as float), 0) as numeric), 2) || '%)' AS stddev_num
+  , format_metric(min, unit) AS min_num
+  , format_metric(max, unit) AS max_num
 FROM execution_devs
 ORDER BY name, scope, unit, mean
