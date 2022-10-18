@@ -220,10 +220,13 @@ class Table:
 
     headers: dict = field(default_factory=dict)
     rows: list = field(default_factory=list)
+    title: str = field(default_factory=str)
     template: Template = field(default_factory=table_template)
 
     def to_html(self, **kwargs):
-        return self.template.render(headers=self.headers, rows=self.rows)
+        return self.template.render(
+            headers=self.headers, rows=self.rows, title=self.title
+        )
 
 
 @dataclass
@@ -386,7 +389,12 @@ def add_table(columns, rows, group=None, template=table_template):
         ]
         for row in rows
     ]
-    fig = Table(headers=headers, rows=rows, template=template)
+    title = ""
+    if group:
+        title = ", ".join(
+            f"{label_from_name(key)}: {value}" for key, value in sorted(group)
+        )
+    fig = Table(headers=headers, rows=rows, title=title, template=template)
     return [fig]
 
 
@@ -532,15 +540,7 @@ def label_from_name(name):
     """Label from column name"""
     words = name.split("_")
     # Note: missing the err suffix
-    if words[-1] in (
-        "num2f",
-        "num",
-        "pct",
-        "group",
-        "unit",
-        "label",
-        "pivot",
-    ):
+    if words[-1] in ("num2f", "num", "pct", "group", "unit", "label", "pivot"):
         words.pop()
     return " ".join(word.capitalize() for word in words)
 
