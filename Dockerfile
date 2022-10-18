@@ -12,5 +12,6 @@ RUN python -m pip install -r requirements.txt
 
 ADD report.py version ./
 ADD sql ./sql/
+ADD templates ./templates/
 
 CMD ["./report.py", "--sql", "sql", "--output", "/out/report.html", "--verbose"]
