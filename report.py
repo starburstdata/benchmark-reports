@@ -70,7 +70,7 @@ def main():
     parser.add_argument(
         "-e",
         "--environments",
-        default=environ.get("ENVIRONMENTS", "%"),
+        default=environ.get("ENVIRONMENTS", "%").split(","),
         action=SplitArgs,
         help="Names of environments to include",
     )
@@ -133,9 +133,9 @@ def print_report(connection, sql, environments, output, basedir=None):
     input_files = [f for f in sorted(glob.glob(sql_glob))]
     logging.debug("Query files: %s", input_files)
 
-    logging.info("Resolving environments")
     params = {f"e{i}": name for i, name in enumerate(environments)}
     constraints = [f"name LIKE :{key}" for key in params.keys()]
+    logging.info("Resolving environment names to ids: %s", params)
     query = f"SELECT id, name FROM environments WHERE {' OR '.join(constraints)} ORDER BY name"
     rows = connection.execute(text(query), params).fetchall()
     logging.info("Report for environment names: %s", [r["name"] for r in rows])
