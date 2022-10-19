@@ -131,8 +131,8 @@ SELECT
   , right_stddev AS right_mean_err
   , cast(right_stddev_pct AS decimal(5,2)) AS right_err_pct_label
   , '[' || format_metric(right_min, unit) || ', ' || format_metric(right_max, unit) || ']' AS right_range_label
-  , format('[%1$s](runs/%1$s.md)', left_run_id) AS left_run_id_label
-  , format('[%1$s](runs/%1$s.md)', right_run_id) AS right_run_id_label
+  , format('<a href="runs/%s/index.html">%s</a>', left_run_id, left_run_id) AS left_run_id_label
+  , format('<a href="runs/%s/index.html">%s</a>', right_run_id, right_run_id) AS right_run_id_label
 FROM diffs_ranked
 WHERE rownum < 6
 ORDER BY metric, rownum
