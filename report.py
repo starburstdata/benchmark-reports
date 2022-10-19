@@ -358,7 +358,7 @@ def figures(columns, rows):
     # TODO if there are too many X values, split last ones into subplots until threshold
     group_by = [name for name in columns if name.endswith("_group")]
     groups = set(frozenset(("", "")))
-    if group_by:
+    if group_by and rows:
         # groups are sets of tuples, because dicts are not hashable
         groups = set(
             frozenset((key, str(row[key])) for key in group_by) for row in rows

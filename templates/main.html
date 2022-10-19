@@ -12,7 +12,7 @@
     </p>
     <h2>Table of Contents</h2>
     <ol>
-{% for report in reports %}
+{% for report in reports if report.figures %}
         <li><a href="#{{ report.slug }}">{{ report.title }}</a></li>
 {% endfor %}
     </ol>
