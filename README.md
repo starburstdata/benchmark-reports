@@ -114,10 +114,10 @@ To run tests:
 ./report.py -t
 ```
 
-To overwrite the example report used in tests:
-```bash
-./report.py -v -s sql -o testdata/report.html
-```
+If you see a failure in pipelines and the diff from the assert is not
+informative enough, download the artifact from the pipeline and compare the
+`actual.html` with `testdata/expected.html`. If all changes are expected, you
+can then overwrite `testdata/expected.html` with `actual.html`.
 
 To make a new backup of the Benchto database to use in tests:
 ```bash
