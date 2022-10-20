@@ -479,7 +479,7 @@ def add_bar_trace(fig, rows, dimensions, metrics, errors, labels, label_prefix="
         values = [str(row[key]) for key in dimensions]
         x.append(", ".join(values))
     text = [
-        "</br>".join(f"{label_from_name(key)}: {row[key]}" for key in labels)
+        "</br>".join(f"{label_from_name(key)}: {trim_long(row[key])}" for key in labels)
         for row in rows
     ]
     for metric in metrics:
@@ -499,6 +499,13 @@ def add_bar_trace(fig, rows, dimensions, metrics, errors, labels, label_prefix="
                 hovertext=text,
             )
         )
+
+
+def trim_long(value):
+    value = str(value)
+    if len(value) > 150 or "\n" in value:
+        return value[:150] + "..."
+    return value
 
 
 def is_dimension(name):
