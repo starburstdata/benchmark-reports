@@ -122,7 +122,7 @@ run postgres \
     postgres:latest
 sleep 2
 
-benchto_version=0.20-SNAPSHOT
+benchto_version=0.21-SNAPSHOT
 benchto_image=trinodev/benchto-service
 benchto_host=localhost
 benchto_port=8081

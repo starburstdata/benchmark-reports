@@ -202,16 +202,38 @@ def get_run_ids(connection, env_ids):
 
 
 def dump_run_details(connection, run_id, run_details, basedir):
+    basedir = os.path.join(basedir, "runs", str(run_id))
+    os.makedirs(basedir, exist_ok=True)
     for run_report in run_details:
         result = connection.execute(text(run_report.query), id=run_id)
-        figures = add_table(result.keys(), result.fetchall())
+        columns = result.keys()
+        rows = save_attachments(basedir, columns, result.fetchall())
+        figures = add_table(columns, rows)
         run_report.contents = ""
         for fig in figures:
             run_report.contents += fig.to_html()
     # Create summary index.html for a whole run
-    os.makedirs(os.path.join(basedir, "runs", str(run_id)), exist_ok=True)
-    with open(os.path.join(basedir, "runs", str(run_id), "index.html"), "w") as f:
+    with open(os.path.join(basedir, "index.html"), "w") as f:
         f.write(run_template.render(run_id=run_id, reports=run_details))
+
+
+def save_attachments(basedir, columns, rows):
+    """Save attachments, which are any column with a _json suffix, to a file and replace it with a link"""
+    result = []
+    for row in rows:
+        filtered_row = {}
+        row_id = None
+        for column in columns:
+            if not row_id and (column.endswith("_id") or column == "id"):
+                row_id = row[column]
+            cell = row[column]
+            if column.endswith("_json"):
+                with open(os.path.join(basedir, f"{row_id}.json"), "w") as f:
+                    f.write(cell)
+                cell = f'<a href="{row_id}.json">{row_id}.json</a>'
+            filtered_row[column] = cell
+        result.append(filtered_row)
+    return result
 
 
 @dataclass(init=True)
