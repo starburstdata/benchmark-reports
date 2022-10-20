@@ -106,7 +106,7 @@ attributes AS (
     WHERE
     env_left.name < env_right.name
     AND (ex_left.mean NOT BETWEEN ex_right.low AND ex_right.high OR ex_right.mean NOT BETWEEN ex_left.low AND ex_left.high)
-    AND ex_left.name IN ('duration', 'totalCpuTime', 'peakTotalMemoryReservation')
+    AND ex_left.name IN ('duration', 'totalCpuTime') -- , 'peakTotalMemoryReservation'
 )
 , diffs_ranked AS (
     SELECT
