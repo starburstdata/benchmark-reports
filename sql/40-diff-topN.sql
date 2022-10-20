@@ -23,14 +23,16 @@ attributes AS (
         runs.id
       , runs.environment_id
       , runs.sequence_id
+      , b.value AS benchmark_name
       -- extract this one selected attribute because it's best as describing the whole run, even if it's not unique
-      , q.value AS query_name
+      , regexp_replace(q.value, '^.*/([^/]*?)(\.[^/.]+)?$', '\1') AS query_name
       , attrs.tuples AS attributes
       , vars.tuples AS variables
       , attrs.tuples || vars.tuples AS properties
     FROM benchmark_runs runs
     LEFT JOIN attributes attrs ON attrs.benchmark_run_id = runs.id
     LEFT JOIN variables vars ON vars.benchmark_run_id = runs.id
+    LEFT JOIN benchmark_runs_attributes b ON b.benchmark_run_id = runs.id AND b.name = 'name'
     LEFT JOIN benchmark_runs_attributes q ON q.benchmark_run_id = runs.id AND q.name = 'query-names'
     WHERE runs.status = 'ENDED'
     AND runs.environment_id = ANY(:env_ids)
@@ -51,6 +53,7 @@ attributes AS (
 , execution_devs AS (
     SELECT
         runs.id AS run_id
+      , runs.benchmark_name
       , runs.query_name
       , m.metric_id
       , m.name
@@ -66,7 +69,7 @@ attributes AS (
     JOIN executions ex ON ex.id = em.execution_id
     JOIN runs ON runs.id = ex.benchmark_run_id
     JOIN measurements m ON m.id = em.measurement_id
-    GROUP BY runs.id, runs.query_name, m.metric_id, m.name, m.unit, m.scope
+    GROUP BY runs.id, runs.benchmark_name, runs.query_name, m.metric_id, m.name, m.unit, m.scope
 )
 , diffs AS (
     SELECT
@@ -74,8 +77,7 @@ attributes AS (
       , format('<a href="envs/%s/env-details.html">%s</a>', env_right.id, env_right.name) AS right_env_link
       , run_left.id AS left_run_id
       , run_right.id AS right_run_id
-      -- TODO this is too much info, replace with a link to details
-      --, vars.tuples AS run_vars
+      , ex_left.benchmark_name
       , ex_left.query_name
       , ex_left.name AS metric
       , ex_left.scope AS metric_scope
@@ -109,15 +111,14 @@ attributes AS (
 , diffs_ranked AS (
     SELECT
         *
-      , row_number() OVER (ORDER BY diff_pct DESC, left_env_link, right_env_link, left_run_id, right_run_id, query_name, metric) AS rownum
+      , row_number() OVER (ORDER BY diff_pct DESC, left_env_link, right_env_link, left_run_id, right_run_id, benchmark_name, query_name, metric) AS rownum
     FROM diffs
 )
 SELECT
     left_env_link AS left_environment
   , right_env_link AS right_environment
-  --, run_vars
-  , regexp_replace(query_name, '/[^/]+$', '') AS benchmark_name
-  , regexp_replace(query_name, '^.*/([^/]*?)(\.[^/.]+)?$', '\1') AS query_name
+  , benchmark_name
+  , query_name
   , metric
   , metric_scope
   , unit AS unit_group

@@ -21,14 +21,16 @@ attributes AS (
         runs.id
       , runs.environment_id
       , runs.sequence_id
+      , b.value AS benchmark_name
       -- extract this one selected attribute because it's best as describing the whole run, even if it's not unique
-      , q.value AS query_name
+      , regexp_replace(q.value, '^.*/([^/]*?)(\.[^/.]+)?$', '\1') AS query_name
       , attrs.tuples AS attributes
       , vars.tuples AS variables
       , attrs.tuples || vars.tuples AS properties
     FROM benchmark_runs runs
     LEFT JOIN attributes attrs ON attrs.benchmark_run_id = runs.id
     LEFT JOIN variables vars ON vars.benchmark_run_id = runs.id
+    LEFT JOIN benchmark_runs_attributes b ON b.benchmark_run_id = runs.id AND b.name = 'name'
     LEFT JOIN benchmark_runs_attributes q ON q.benchmark_run_id = runs.id AND q.name = 'query-names'
     WHERE runs.status = 'ENDED'
     AND runs.environment_id = ANY(:env_ids)
@@ -85,6 +87,7 @@ attributes AS (
     SELECT
         runs.id
       , runs.environment_id AS environment_id
+      , runs.benchmark_name AS benchmark_name
       , runs.query_name AS query_name
       , runs.properties AS properties
       , m.metric_id
@@ -99,11 +102,12 @@ attributes AS (
     JOIN runs ON runs.id = ex.benchmark_run_id
     JOIN measurements m ON m.id = em.measurement_id
     WHERE m.scope = 'driver'
-    GROUP BY runs.id, runs.environment_id, runs.properties, runs.query_name, m.metric_id, m.name, m.unit
+    GROUP BY runs.id, runs.environment_id, runs.properties, runs.benchmark_name, runs.query_name, m.metric_id, m.name, m.unit
 )
 , diffs AS (
     SELECT
         run_devs.id
+      , run_devs.benchmark_name
       , run_devs.query_name
       , dense_rank() OVER (PARTITION BY cp.id ORDER BY run_devs.properties) AS props_num
       , format('<a href="envs/%s/env-details.html">%s</a>', env.id, env.name) AS env_link
@@ -129,6 +133,7 @@ attributes AS (
     SELECT
         -- TODO nulls or summary?
         NULL AS id
+      , NULL AS benchmark_name
       , NULL AS query_name
       , NULL AS props_num
       , NULL AS env_link
@@ -147,8 +152,8 @@ attributes AS (
     FROM common_properties
 )
 SELECT
-    regexp_replace(query_name, '/[^/]+$', '') AS benchmark_name
-  , regexp_replace(query_name, '^.*/([^/]*?)(\.[^/.]+)?$', '\1') AS query_name
+    benchmark_name
+  , query_name
   , props_num AS props_id
   , nullif(format('<a href="runs/%s/index.html">%s</a>', id, id), '<a href="runs//index.html"></a>') AS run_number_label
   , env_link AS environment_pivot

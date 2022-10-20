@@ -21,11 +21,11 @@ environments AS (
       , runs.environment_id
       , runs.sequence_id
       , runs.status
+      , b.value AS benchmark_name
       -- extract this one selected attribute because it's best as describing the whole run, even if it's not unique
-      , regexp_replace(q.value, '/[^/]+$', '') AS benchmark_name
-      , regexp_replace(q.value, '^.*/([^/]*?)(\.[^/.]+)?$', '\1') AS query_name
-      , q.value AS full_query_name
+      , q.value AS query_name
     FROM benchmark_runs runs
+    LEFT JOIN benchmark_runs_attributes b ON b.benchmark_run_id = runs.id AND b.name = 'name'
     LEFT JOIN benchmark_runs_attributes q ON q.benchmark_run_id = runs.id AND q.name = 'query-names'
     AND runs.environment_id = ANY(:env_ids)
 )
@@ -80,7 +80,7 @@ SELECT
   , array_agg(DISTINCT runs.status) AS statuses_label
   -- technically these are metrics, but treat them as labels to avoid showing a chart for this query
   , count(DISTINCT runs.benchmark_name) AS benchmarks_label
-  , count(DISTINCT runs.full_query_name) AS queries_label
+  , count(DISTINCT runs.query_name) AS queries_label
   , count(DISTINCT runs.id) AS runs_label
   , sum(s.num_executions) AS executions_label
   , sum(s.num_invalid_executions) AS invalid_executions_label

@@ -19,7 +19,7 @@ measurements AS (
         runs.id
       , runs.environment_id
       -- extract this one selected attribute because it's best as describing the whole run, even if it's not unique
-      , regexp_replace(q.value, '/[^/]+$', '') AS benchmark_name
+      , b.value AS benchmark_name
       , m.metric_id
       , m.name
       , m.scope
@@ -30,7 +30,7 @@ measurements AS (
       , stddev(m.value) AS stddev
       , 100 * stddev(m.value) / nullif(cast(avg(m.value) as real), 0) AS stddev_pct
     FROM benchmark_runs runs
-    LEFT JOIN benchmark_runs_attributes q ON q.benchmark_run_id = runs.id AND q.name = 'query-names'
+    LEFT JOIN benchmark_runs_attributes b ON b.benchmark_run_id = runs.id AND b.name = 'name'
     JOIN executions ex ON ex.benchmark_run_id = runs.id
     JOIN execution_measurements em ON ex.id = em.execution_id
     JOIN measurements m ON m.id = em.measurement_id AND m.name IN ('duration', 'totalCpuTime', 'peakTotalMemoryReservation')
