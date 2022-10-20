@@ -408,7 +408,7 @@ def table_entry(item):
         return trimmed
     if trimmed.count("\n") < 5:
         return f"<pre>{ trimmed }</pre>"
-    return "<details><summary>{}</summary><pre>{}</pre></details>".format(
+    return '<details class="align-left"><summary>{}</summary><pre>{}</pre></details>'.format(
         trimmed[: trimmed.find("\n")], trimmed
     )
 
