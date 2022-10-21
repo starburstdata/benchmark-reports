@@ -103,7 +103,6 @@ attributes AS (
     JOIN execution_devs ex_right ON ex_right.run_id = run_right.id AND ex_left.metric_id = ex_right.metric_id
     JOIN environments env_left ON env_left.id = run_left.environment_id
     JOIN environments env_right ON env_right.id = run_right.environment_id
-    JOIN variables vars ON vars.benchmark_run_id = run_left.id
     WHERE
     env_left.name < env_right.name
     AND (ex_left.mean NOT BETWEEN ex_right.low AND ex_right.high OR ex_right.mean NOT BETWEEN ex_left.low AND ex_left.high)
