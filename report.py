@@ -620,16 +620,24 @@ def align_from_name(name):
 
 class TestReport(unittest.TestCase):
     def test_report(self):
-        with PostgresContainer("postgres:latest") as postgres:
+        with PostgresContainer("postgres:latest").with_command(
+            "postgres -c fsync=off"
+        ) as postgres:
             self.restore(postgres.get_connection_url(), "testdata/backup.dump")
             url = make_url(postgres.get_connection_url())
             engine = create_engine(url.set(database="benchto"))
+            connection = engine.connect()
+
+            connection.execute("LOAD 'auto_explain'")
+            connection.execute("SET auto_explain.log_min_duration = 0")
+            connection.execute("SET auto_explain.log_analyze = true")
+            connection.execute("SET auto_explain.log_buffers = true")
 
             with open("testdata/expected.html", "r") as f:
                 expected = f.read()
 
             output = io.StringIO()
-            print_report(engine.connect(), "sql", "%", output)
+            print_report(connection, "sql", "%", output)
             actual = output.getvalue()
             # replace the parts that are expected to always change to make the diff more meaningful
             # replace UIDs with their number of occurrence in the file, and git SHAs with an x
