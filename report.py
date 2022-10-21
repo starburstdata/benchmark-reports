@@ -10,14 +10,13 @@ import glob
 import io
 import logging
 import numbers
-import os
 import re
 import subprocess
 import sys
 import unittest
 from dataclasses import dataclass, field
 from functools import cache
-from os import environ, path
+from os import environ, path, makedirs
 
 import git
 import plotly.graph_objects as go
@@ -28,27 +27,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 from sqlalchemy.sql.expression import text
 from testcontainers.postgres import PostgresContainer
-
-jinja_env = Environment(
-    loader=PackageLoader("report"),
-    autoescape=select_autoescape(),
-    trim_blocks=True,
-    lstrip_blocks=True,
-)
-main_template = jinja_env.get_template("main.html")
-table_template = jinja_env.get_template("table.html")
-env_template = jinja_env.get_template("env.html")
-run_template = jinja_env.get_template("run.html")
-table_css = jinja_env.get_template("table.css")
-
-runs_query = """
-SELECT id
-FROM benchmark_runs
-WHERE status = 'ENDED'
-AND environment_id = ANY(:env_ids)
-ORDER BY id
-;
-"""
 
 
 def main():
@@ -65,7 +43,7 @@ def main():
         "-s",
         "--sql",
         default=".",
-        help="Path to a directory with sql files to execute",
+        help="Path to a directory with sql files to execute, or a single sql file",
     )
     parser.add_argument(
         "-e",
@@ -79,6 +57,12 @@ def main():
         "--output",
         default="-",
         help="Filename to write the report to",
+    )
+    parser.add_argument(
+        "-j",
+        "--jinja-templates",
+        default="templates",
+        help="Path to the directory with Jinja2 templates",
     )
     parser.add_argument(
         "-v",
@@ -98,6 +82,7 @@ def main():
 
     args = parser.parse_args()
     logging.basicConfig(level=args.loglevel)
+
     if args.test:
         sys.argv = [sys.argv[0]]
         unittest.main()
@@ -113,7 +98,14 @@ def main():
         output = open(args.output, "w")
         basedir = path.dirname(args.output)
 
-    print_report(connection, args.sql, args.environments, output, basedir=basedir)
+    print_report(
+        jinja_env(args.jinja_templates),
+        connection,
+        args.sql,
+        args.environments,
+        output,
+        basedir=basedir,
+    )
 
     if args.output != "-":
         output.close()
@@ -126,13 +118,26 @@ class SplitArgs(argparse.Action):
         setattr(namespace, self.dest, values.split(","))
 
 
-def print_report(connection, sql, environments, output, basedir=None):
+def jinja_env(templates):
+    return Environment(
+        loader=PackageLoader("report", package_path=templates),
+        autoescape=select_autoescape(),
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
+
+
+def print_report(jinja_env, connection, sql, environments, output, basedir=None):
     """Print report for all report queries and selected environments"""
     logging.debug("Setup reports")
 
-    sql_glob = glob.escape(sql) + "/??-*.sql"
-    logging.info("Loading queries from %s", sql_glob)
-    input_files = [f for f in sorted(glob.glob(sql_glob))]
+    if path.isfile(sql):
+        input_files = [sql]
+    else:
+        sql_glob = glob.escape(sql) + "/??-*.sql"
+        logging.info("Loading queries from %s", sql_glob)
+        input_files = [f for f in sorted(glob.glob(sql_glob))]
+        sql = path.dirname(sql)
     logging.debug("Query files: %s", input_files)
 
     params = {f"e{i}": name for i, name in enumerate(environments)}
@@ -145,77 +150,102 @@ def print_report(connection, sql, environments, output, basedir=None):
 
     logging.debug("Setup done, generating reports")
     reports = [read_report(basedir, f) for f in input_files]
-    reports = add_figures(reports, connection, env_ids)
+    reports = add_figures(jinja_env, reports, connection, env_ids)
 
     logging.debug("Printing reports")
+    main_template = jinja_env.get_template("main.html")
     output.write(
         main_template.render(reports=reports, plotly_version=get_plotlyjs_version())
     )
 
     if basedir is not None:
-        dump_envs_details(connection, sql, env_ids, basedir)
-        dump_runs_details(connection, sql, env_ids, basedir)
+        dump_envs_details(jinja_env, connection, sql, env_ids, basedir)
+        dump_runs_details(jinja_env, connection, sql, env_ids, basedir)
 
     logging.debug("All done")
 
 
-def dump_envs_details(connection, sql, env_ids, basedir):
+def dump_envs_details(jinja_env, connection, sql, env_ids, basedir):
     """Dump env details for all selected environments"""
     logging.debug("Listing all environments in %s", env_ids)
-    env_details_sql = os.path.join(sql, "env_details.sql")
+    env_details_sql = path.join(sql, "env_details.sql")
+    if not path.isfile(env_details_sql):
+        logging.warning(
+            "Query file %s does not exist, NOT dumping env details", env_details_sql
+        )
+        return
     logging.info("Loading query from %s", env_details_sql)
     env_details = read_env_details(env_details_sql)
+    env_template = jinja_env.get_template("env.html")
     for env_id in env_ids:
         dump_env_details_to_file(
-            os.path.join(basedir, "envs", str(env_id)),
+            env_template,
+            path.join(basedir, "envs", str(env_id)),
             env_details,
             connection,
             env_id,
         )
 
 
-def dump_env_details_to_file(prefix, details, connection, id):
+def dump_env_details_to_file(env_template, prefix, details, connection, id):
     result = connection.execute(text(details.query), id=id)
-    figures = add_table(result.keys(), result.fetchall(), template=env_template)
+    figures = add_table(result.keys(), result.fetchall(), env_template)
     # write table to a html file
-    os.makedirs(prefix, exist_ok=True)
-    with open(os.path.join(prefix, details.results_file), "w") as f:
+    makedirs(prefix, exist_ok=True)
+    with open(path.join(prefix, details.results_file), "w") as f:
         for fig in figures:
             f.write(fig.to_html())
 
 
-def dump_runs_details(connection, sql, env_ids, basedir):
+def dump_runs_details(jinja_env, connection, sql, env_ids, basedir):
     logging.debug("Dumping runs details for env_ids: %s", env_ids)
     runs = get_run_ids(connection, env_ids)
-    sql_glob = os.path.join(glob.escape(sql), "run-*.sql")
+    sql_glob = path.join(glob.escape(sql), "run-*.sql")
     logging.info("Loading queries from %s", sql_glob)
     run_details_queries = [f for f in sorted(glob.glob(sql_glob))]
+    if not run_details_queries:
+        logging.warning("No run detail queries loaded, NOT dumping run details")
+        return
     logging.debug("Query files: %s", run_details_queries)
     run_details = [read_run_details(f) for f in run_details_queries]
+    run_template = jinja_env.get_template("run.html")
+    table_template = jinja_env.get_template("table.html")
     for run in runs:
-        dump_run_details(connection, run, run_details, basedir)
+        dump_run_details(
+            run_template, table_template, connection, run, run_details, basedir
+        )
 
 
 def get_run_ids(connection, env_ids):
     """Get run details for all selected environments"""
     logging.debug("Listing all runs from env_ids: %s", env_ids)
+    runs_query = """
+SELECT id
+FROM benchmark_runs
+WHERE status = 'ENDED'
+AND environment_id = ANY(:env_ids)
+ORDER BY id
+;
+"""
     result = connection.execute(text(runs_query), env_ids=env_ids)
     return [row["id"] for row in result.fetchall()]
 
 
-def dump_run_details(connection, run_id, run_details, basedir):
-    basedir = os.path.join(basedir, "runs", str(run_id))
-    os.makedirs(basedir, exist_ok=True)
+def dump_run_details(
+    run_template, table_template, connection, run_id, run_details, basedir
+):
+    basedir = path.join(basedir, "runs", str(run_id))
+    makedirs(basedir, exist_ok=True)
     for run_report in run_details:
         result = connection.execute(text(run_report.query), id=run_id)
         columns = result.keys()
         rows = save_attachments(basedir, columns, result.fetchall())
-        figures = add_table(columns, rows)
+        figures = add_table(columns, rows, table_template)
         run_report.contents = ""
         for fig in figures:
             run_report.contents += fig.to_html()
     # Create summary index.html for a whole run
-    with open(os.path.join(basedir, "index.html"), "w") as f:
+    with open(path.join(basedir, "index.html"), "w") as f:
         f.write(run_template.render(run_id=run_id, reports=run_details))
 
 
@@ -230,7 +260,7 @@ def save_attachments(basedir, columns, rows):
                 row_id = row[column]
             cell = row[column]
             if column.endswith("_json"):
-                with open(os.path.join(basedir, f"{row_id}.json"), "w") as f:
+                with open(path.join(basedir, f"{row_id}.json"), "w") as f:
                     f.write(cell)
                 cell = f'<a href="{row_id}.json">{row_id}.json</a>'
             filtered_row[column] = cell
@@ -242,10 +272,10 @@ def save_attachments(basedir, columns, rows):
 class Table:
     """HTML table for showing raw data"""
 
-    headers: dict = field(default_factory=dict)
-    rows: list = field(default_factory=list)
-    title: str = field(default_factory=str)
-    template: Template = field(default_factory=table_template)
+    headers: dict
+    rows: list
+    title: str
+    template: Template
 
     def to_html(self, **kwargs):
         return self.template.render(
@@ -345,16 +375,17 @@ def read_query(file):
         for line in f:
             if line.startswith("--") and not query:
                 if not title:
-                    title = line.lstrip("-")
+                    title = line.lstrip("- ")
                 else:
-                    desc += line.lstrip("-")
+                    desc += line.lstrip("- ")
                 continue
             query += line
     return desc.strip(), query.strip(), title.strip()
 
 
-def add_figures(reports, connection, env_ids):
+def add_figures(jinja_env, reports, connection, env_ids):
     """Add figures to reports by executing queries"""
+    table_template = jinja_env.get_template("table.html")
     for entry in reports:
         logging.debug("Fetching results for: %s", entry.file)
         result = connection.execute(text(entry.query), env_ids=env_ids)
@@ -371,11 +402,11 @@ def add_figures(reports, connection, env_ids):
                 writer.writerow([name for name in result.keys()])
                 writer.writerows(rows)
         # create figures
-        entry.figures = figures(result.keys(), rows)
+        entry.figures = figures(table_template, result.keys(), rows)
     return reports
 
 
-def figures(columns, rows):
+def figures(table_template, columns, rows):
     """Figure from data rows"""
 
     result = []
@@ -392,25 +423,23 @@ def figures(columns, rows):
         names = [name for name in columns if name not in group_by]
         group_rows = [row for row in rows if row_in_group(row, group)]
         logging.debug("Rendering group %s with %d rows", group, len(group_rows))
-        result += add_table(names, group_rows, group)
+        result += add_table(names, group_rows, table_template, group)
         result += add_barchart(names, group_rows, group)
     return result
 
 
-def add_table(columns, rows, group=None, template=table_template):
+def add_table(columns, rows, template, group=None):
     headers = [
         dict(
             name=key,
             value=label_from_name(key),
             css_class=f"align-{align_from_name(key)}",
+            md_class=":--" if align_from_name(key) == "left" else "--:",
         )
         for key in columns
     ]
     rows = [
-        [
-            dict(value=table_entry(row[header["name"]]), css_class=header["css_class"])
-            for header in headers
-        ]
+        [table_entry(row[header["name"]], header["css_class"]) for header in headers]
         for row in rows
     ]
     title = ""
@@ -418,22 +447,22 @@ def add_table(columns, rows, group=None, template=table_template):
         title = ", ".join(
             f"{label_from_name(key)}: {value}" for key, value in sorted(group)
         )
-    fig = Table(headers=headers, rows=rows, title=title, template=template)
+    fig = Table(headers, rows, title, template)
     return [fig]
 
 
-def table_entry(item):
+def table_entry(item, css_class):
     if item is None:
-        return None
+        return dict(value=None, css_class=css_class)
     if isinstance(item, numbers.Number):
-        return f'<pre class="numeric">{ item }</pre>'
+        return dict(value=item, css_class=css_class + " numeric")
     trimmed = str(item).strip("\n")
-    if trimmed.endswith("</a>"):
-        return trimmed
-    if trimmed.count("\n") < 5:
-        return f"<pre>{ trimmed }</pre>"
-    return '<details class="align-left"><summary>{}</summary><pre>{}</pre></details>'.format(
-        trimmed[: trimmed.find("\n")], trimmed
+    if trimmed.endswith("</a>") or trimmed.count("\n") < 5:
+        return dict(value=trimmed, css_class=css_class)
+    summary = trimmed[: trimmed.find("\n")]
+    return dict(
+        value=f"<details><summary>{summary}</summary><pre>{trimmed}</pre></details>",
+        css_class="align-left",
     )
 
 
@@ -639,7 +668,7 @@ class TestReport(unittest.TestCase):
                     expected = f.read()
 
                 output = io.StringIO()
-                print_report(connection, "sql", "%", output)
+                print_report(jinja_env("templates"), connection, "sql", "%", output)
                 actual = output.getvalue()
                 # replace the parts that are expected to always change to make the diff more meaningful
                 # replace UIDs with their number of occurrence in the file, and git SHAs with an x
@@ -656,7 +685,10 @@ class TestReport(unittest.TestCase):
                         r"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})",
                         replacement,
                     ),
-                    (r"benchmark-reports/blob/[0-9a-f]{40}/", "benchmark-reports/blob/x/"),
+                    (
+                        r"benchmark-reports/blob/[0-9a-f]{40}/",
+                        "benchmark-reports/blob/x/",
+                    ),
                 ]
                 for regex, replacement in replacements:
                     actual = re.sub(regex, replacement, actual)
