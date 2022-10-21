@@ -118,6 +118,8 @@ def main():
     if args.output != "-":
         output.close()
 
+    connection.close()
+
 
 class SplitArgs(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
@@ -626,47 +628,47 @@ class TestReport(unittest.TestCase):
             self.restore(postgres.get_connection_url(), "testdata/backup.dump")
             url = make_url(postgres.get_connection_url())
             engine = create_engine(url.set(database="benchto"))
-            connection = engine.connect()
+            with engine.connect() as connection:
 
-            connection.execute("LOAD 'auto_explain'")
-            connection.execute("SET auto_explain.log_min_duration = 0")
-            connection.execute("SET auto_explain.log_analyze = true")
-            connection.execute("SET auto_explain.log_buffers = true")
+                connection.execute("LOAD 'auto_explain'")
+                connection.execute("SET auto_explain.log_min_duration = 0")
+                connection.execute("SET auto_explain.log_analyze = true")
+                connection.execute("SET auto_explain.log_buffers = true")
 
-            with open("testdata/expected.html", "r") as f:
-                expected = f.read()
+                with open("testdata/expected.html", "r") as f:
+                    expected = f.read()
 
-            output = io.StringIO()
-            print_report(connection, "sql", "%", output)
-            actual = output.getvalue()
-            # replace the parts that are expected to always change to make the diff more meaningful
-            # replace UIDs with their number of occurrence in the file, and git SHAs with an x
-            uids = {}
+                output = io.StringIO()
+                print_report(connection, "sql", "%", output)
+                actual = output.getvalue()
+                # replace the parts that are expected to always change to make the diff more meaningful
+                # replace UIDs with their number of occurrence in the file, and git SHAs with an x
+                uids = {}
 
-            def replacement(exp):
-                uid = exp.groups()[0]
-                if uid not in uids:
-                    uids[uid] = len(uids)
-                return f"{uids[uid]:08}-1111-1111-1111-222222222222"
+                def replacement(exp):
+                    uid = exp.groups()[0]
+                    if uid not in uids:
+                        uids[uid] = len(uids)
+                    return f"{uids[uid]:08}-1111-1111-1111-222222222222"
 
-            replacements = [
-                (
-                    r"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})",
-                    replacement,
-                ),
-                (r"benchmark-reports/blob/[0-9a-f]{40}/", "benchmark-reports/blob/x/"),
-            ]
-            for regex, replacement in replacements:
-                actual = re.sub(regex, replacement, actual)
-                expected = re.sub(regex, replacement, expected)
-            # only check the length, because reports contain random UUIDs, this is enough for a smoke test
-            try:
-                self.assertEqual(len(actual), len(expected))
-            except AssertionError:
-                with open("testdata/actual.html", "w") as f:
-                    f.write(actual)
-                self.assertEqual(actual, expected)
-            output.close()
+                replacements = [
+                    (
+                        r"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})",
+                        replacement,
+                    ),
+                    (r"benchmark-reports/blob/[0-9a-f]{40}/", "benchmark-reports/blob/x/"),
+                ]
+                for regex, replacement in replacements:
+                    actual = re.sub(regex, replacement, actual)
+                    expected = re.sub(regex, replacement, expected)
+                # only check the length, because reports contain random UUIDs, this is enough for a smoke test
+                try:
+                    self.assertEqual(len(actual), len(expected))
+                except AssertionError:
+                    with open("testdata/actual.html", "w") as f:
+                        f.write(actual)
+                    self.assertEqual(actual, expected)
+                output.close()
 
     def restore(self, url, filename):
         subprocess.run(
