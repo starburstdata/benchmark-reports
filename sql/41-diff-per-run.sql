@@ -7,6 +7,8 @@ attributes AS (
         benchmark_run_id
       , array_agg(name || '=' || value ORDER BY name, value) AS tuples
     FROM benchmark_runs_attributes
+    -- remove known properties that are not unique - are derived from others
+    WHERE name NOT IN ('statement')
     GROUP BY 1
 )
 , variables AS (
