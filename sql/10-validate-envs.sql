@@ -13,6 +13,7 @@ environments AS (
       , array_agg(a.name || '=' || a.value ORDER BY a.name, a.value) AS attributes
     FROM environments env
     LEFT JOIN environment_attributes a ON a.environment_id = env.id AND a.name NOT IN ('startup_logs')
+    WHERE env.id = ANY(:env_ids)
     GROUP BY 1, 2
 )
 , runs AS (

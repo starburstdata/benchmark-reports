@@ -8,6 +8,7 @@ import argparse
 import csv
 import glob
 import io
+import json
 import logging
 import numbers
 import re
@@ -16,12 +17,12 @@ import sys
 import unittest
 from dataclasses import dataclass, field
 from functools import cache
-from os import environ, path, makedirs
+from os import environ, makedirs, path
 
 import git
 import plotly.graph_objects as go
+from jinja2 import Environment, PackageLoader, Template, select_autoescape
 from plotly.offline import get_plotlyjs_version
-from jinja2 import Environment, select_autoescape, PackageLoader, Template
 from slugify import slugify
 from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
@@ -81,7 +82,11 @@ def main():
     )
 
     args = parser.parse_args()
-    logging.basicConfig(level=args.loglevel)
+    logging.basicConfig(
+        level=args.loglevel,
+        format="%(asctime)s.%(msecs)03d %(levelname)s [%(name)s] %(message)s",
+        datefmt="%Y-%m-%dT%H:%M:%S",
+    )
 
     if args.test:
         sys.argv = [sys.argv[0]]
@@ -133,11 +138,11 @@ def print_report(jinja_env, connection, sql, environments, output, basedir=None)
 
     if path.isfile(sql):
         input_files = [sql]
+        sql = path.dirname(sql)
     else:
         sql_glob = glob.escape(sql) + "/??-*.sql"
         logging.info("Loading queries from %s", sql_glob)
         input_files = [f for f in sorted(glob.glob(sql_glob))]
-        sql = path.dirname(sql)
     logging.debug("Query files: %s", input_files)
 
     params = {f"e{i}": name for i, name in enumerate(environments)}
@@ -210,7 +215,8 @@ def dump_runs_details(jinja_env, connection, sql, env_ids, basedir):
     run_details = [read_run_details(f) for f in run_details_queries]
     run_template = jinja_env.get_template("run.jinja")
     table_template = jinja_env.get_template("table.jinja")
-    for run in runs:
+    for i, run in enumerate(runs):
+        logging.debug("Dumping details for run %s out of %s, id: %s", i, len(runs), run)
         dump_run_details(
             run_template, table_template, connection, run, run_details, basedir
         )
@@ -261,7 +267,7 @@ def save_attachments(basedir, columns, rows):
             cell = row[column]
             if column.endswith("_json"):
                 with open(path.join(basedir, f"{row_id}.json"), "w") as f:
-                    f.write(cell)
+                    json.dump(cell, f, indent=2)
                 cell = f'<a href="{row_id}.json">{row_id}.json</a>'
             filtered_row[column] = cell
         result.append(filtered_row)
