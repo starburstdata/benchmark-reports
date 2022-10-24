@@ -153,7 +153,7 @@ def print_report(jinja_env, connection, sql, environments, output, basedir=None)
     reports = add_figures(jinja_env, reports, connection, env_ids)
 
     logging.debug("Printing reports")
-    main_template = jinja_env.get_template("main.html")
+    main_template = jinja_env.get_template("main.jinja")
     output.write(
         main_template.render(reports=reports, plotly_version=get_plotlyjs_version())
     )
@@ -176,7 +176,7 @@ def dump_envs_details(jinja_env, connection, sql, env_ids, basedir):
         return
     logging.info("Loading query from %s", env_details_sql)
     env_details = read_env_details(env_details_sql)
-    env_template = jinja_env.get_template("env.html")
+    env_template = jinja_env.get_template("env.jinja")
     for env_id in env_ids:
         dump_env_details_to_file(
             env_template,
@@ -208,8 +208,8 @@ def dump_runs_details(jinja_env, connection, sql, env_ids, basedir):
         return
     logging.debug("Query files: %s", run_details_queries)
     run_details = [read_run_details(f) for f in run_details_queries]
-    run_template = jinja_env.get_template("run.html")
-    table_template = jinja_env.get_template("table.html")
+    run_template = jinja_env.get_template("run.jinja")
+    table_template = jinja_env.get_template("table.jinja")
     for run in runs:
         dump_run_details(
             run_template, table_template, connection, run, run_details, basedir
@@ -385,7 +385,7 @@ def read_query(file):
 
 def add_figures(jinja_env, reports, connection, env_ids):
     """Add figures to reports by executing queries"""
-    table_template = jinja_env.get_template("table.html")
+    table_template = jinja_env.get_template("table.jinja")
     for entry in reports:
         logging.debug("Fetching results for: %s", entry.file)
         result = connection.execute(text(entry.query), env_ids=env_ids)
