@@ -1,4 +1,4 @@
--- Top 5 differences
+-- Top 5 duration differences
 -- Find top 5 runs with same properties but from different environments with mean differences
 -- of the query duration greater than the standard deviation of the other metric and 5%.
 WITH
@@ -112,20 +112,17 @@ attributes AS (
     FROM diffs
 )
 SELECT
-    -- not returning environments, as it is expected to run this summary between two known ones
-    benchmark_name
+    left_environment
+  , right_environment
+  , benchmark_name
   , query_name
-  , metric
-  , metric_scope
   , format_metric(diff, unit) AS diff_label
   , format_percent(diff_pct) AS diff_pct_label
   , format_metric(left_mean, unit) AS left_mean_label
-  , round(left_stddev::numeric, 2) AS left_mean_err_label
-  , cast(left_stddev_pct AS decimal(5,2)) AS left_err_pct_label
+  , '±' || format_metric(left_stddev, unit) || ' (' || round(cast(left_stddev/nullif(cast(left_mean as float), 0) as numeric), 2) || '%)' AS left_mean_err_label
   , format_metric(right_mean, unit) AS right_mean_label
-  , round(right_stddev::numeric, 2) AS right_mean_err_label
-  , cast(right_stddev_pct AS decimal(5,2)) AS right_err_pct_label
+  , '±' || format_metric(right_stddev, unit) || ' (' || round(cast(right_stddev/nullif(cast(right_mean as float), 0) as numeric), 2) || '%)' AS right_mean_err_label
 FROM diffs_ranked
 WHERE rownum < 6
-ORDER BY metric, rownum
+ORDER BY rownum
 ;
