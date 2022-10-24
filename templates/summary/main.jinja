@@ -1,0 +1,7 @@
+{% for report in reports if report.figures %}
+## {{ report.title }}
+
+{% for fig in report.figures %}
+{{ fig.to_html(full_html=False, include_plotlyjs=False) | safe }}
+{% endfor %}
+{% endfor %}

@@ -1,0 +1,9 @@
+{% if title %}
+### {{ title }}
+{% endif %}
+
+{% for header in headers %}| {{ header['value'] }} {% endfor %} |
+{% for header in headers %}| {{ header['md_class'] }} {% endfor %} |
+{% for row in rows %}
+{% for field in row %}| {{ field['value'] | safe }} {% endfor %} |
+{% endfor %}
