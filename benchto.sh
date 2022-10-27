@@ -4,19 +4,21 @@ set -euo pipefail
 
 usage() {
     cat <<EOF >&2
-Usage: $0 [-h] [-x] -r <VERSIONS> [-t <TRINO_SRC_DIR>]
+Usage: $0 [-h] [-x] [-c] -r <VERSIONS> [-t <TRINO_SRC_DIR>]
 Tests one or more Trino versions
 
 -h       Display help
+-c       Run cold, do not warmup before running benchmarks
 -r       Test the specified Trino versions; specify a version number, a commit, or SNAPSHOT to build and test currently checked out commit
 -t       Path to the Trino sources directory; where the standard benchmarks are read from
 EOF
 }
 
+WARMUP=true
 DEBUG=false
 TRINO_DIR=$(pwd)
 
-while getopts ":r:t:xh" OPTKEY; do
+while getopts ":r:t:xch" OPTKEY; do
     case "${OPTKEY}" in
         r)
             IFS=, read -ra VERSIONS <<<"$OPTARG"
@@ -27,6 +29,9 @@ while getopts ":r:t:xh" OPTKEY; do
         x)
             DEBUG=true
             set -x
+            ;;
+        c)
+            WARMUP=false
             ;;
         h)
             usage
@@ -110,6 +115,12 @@ function cleanup() {
         echo >&2 "  Resource dir: $RES_DIR"
     fi
     exit "$code"
+}
+
+function join_by() {
+    local IFS="$1"
+    shift
+    echo "$*"
 }
 
 trap cleanup ERR
@@ -320,7 +331,8 @@ benchmark:
 YAML
 
     cat <<'YAML' >"$RES_DIR/overrides.yaml"
-runs: 5
+runs: 1
+prewarm-runs: 0
 tpch_300: tpch_sf10_orc
 scale_300: 10
 tpch_1000: tpch_sf10_orc
@@ -332,20 +344,37 @@ YAML
 
     # run the benchmark
     echo "Starting the benchmark"
-    # TODO Trino needs to be built with JDK 17 but Benchto must be executed with JDK 8
-    # TODO avoid hardcoding the version
     (
         # application.yaml needs to be in current working directory
         # note there's no --timeLimit, which only makes sense for throughput tests
         cd "$RES_DIR"
-        ! command -V jenv >/dev/null || jenv local 1.8
-        JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home java -Xmx1g \
+
+        if [ "$WARMUP" == "true" ]; then
+            # warmup - run all queries twice without saving results
+            java -Xmx1g \
+                -jar "$local_repo/io/trino/benchto/benchto-driver/$benchto_version/benchto-driver-$benchto_version-exec.jar" \
+                --sql "$TRINO_DIR"/testing/trino-benchmark-queries/src/main/resources/sql \
+                --benchmarks "$TRINO_DIR"/testing/trino-benchto-benchmarks/src/main/resources/benchmarks \
+                --activeBenchmarks=presto/tpch \
+                --overrides "$RES_DIR/overrides.yaml" \
+                --frequencyCheckEnabled false \
+                --warmup true \
+                --executionSequenceId 1,2
+        fi
+
+        # sequences needs to be unique, so use seconds since epoch as prefix
+        seq_prefix=$(printf '%(%s)T\n' -1)
+        mapfile -t sequences < <(seq 5)
+        # repeat benchmark 5 times
+        java -Xmx1g \
             -jar "$local_repo/io/trino/benchto/benchto-driver/$benchto_version/benchto-driver-$benchto_version-exec.jar" \
             --sql "$TRINO_DIR"/testing/trino-benchmark-queries/src/main/resources/sql \
             --benchmarks "$TRINO_DIR"/testing/trino-benchto-benchmarks/src/main/resources/benchmarks \
             --activeBenchmarks=presto/tpch \
             --overrides "$RES_DIR/overrides.yaml" \
-            --frequencyCheckEnabled false
+            --frequencyCheckEnabled false \
+            --warmup false \
+            --executionSequenceId "$(join_by , "${sequences[@]/#/$seq_prefix-}")"
     )
 
     docker rm --force ${prefix}trino
