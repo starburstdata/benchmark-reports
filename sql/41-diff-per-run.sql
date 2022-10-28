@@ -87,11 +87,11 @@ attributes AS (
 )
 , run_devs AS (
     SELECT
-        runs.id
-      , runs.environment_id AS environment_id
-      , runs.benchmark_name AS benchmark_name
-      , runs.query_name AS query_name
+        runs.environment_id AS environment_id
       , runs.properties AS properties
+      , array_agg(runs.id) AS run_ids
+      , runs.benchmark_name
+      , runs.query_name
       , m.metric_id
       , m.name
       , m.unit
@@ -104,12 +104,11 @@ attributes AS (
     JOIN runs ON runs.id = ex.benchmark_run_id
     JOIN measurements m ON m.id = em.measurement_id
     WHERE m.scope = 'driver'
-    GROUP BY runs.id, runs.environment_id, runs.properties, runs.benchmark_name, runs.query_name, m.metric_id, m.name, m.unit
+    GROUP BY runs.environment_id, runs.properties, runs.benchmark_name, runs.query_name, m.metric_id, m.name, m.unit
 )
 , diffs AS (
     SELECT
-        run_devs.id
-      , run_devs.benchmark_name
+        run_devs.benchmark_name
       , run_devs.query_name
       , dense_rank() OVER (PARTITION BY cp.id ORDER BY run_devs.properties) AS props_num
       , format('<a href="envs/%s/env-details.html">%s</a>', env.id, env.name) AS env_link
@@ -129,13 +128,12 @@ attributes AS (
       , false AS is_header
     FROM run_devs
     JOIN environments env ON env.id = run_devs.environment_id
-    LEFT JOIN common_properties cp ON run_devs.id = ANY(cp.run_ids)
+    LEFT JOIN common_properties cp ON run_devs.run_ids && cp.run_ids
     WINDOW w AS (PARTITION BY run_devs.properties ORDER BY env.name)
     UNION ALL
     SELECT
         -- TODO nulls or summary?
-        NULL AS id
-      , NULL AS benchmark_name
+        NULL AS benchmark_name
       , NULL AS query_name
       , NULL AS props_num
       , NULL AS env_link
@@ -157,7 +155,8 @@ SELECT
     benchmark_name
   , query_name
   , props_num AS props_id
-  , nullif(format('<a href="runs/%s/index.html">%s</a>', id, id), '<a href="runs//index.html"></a>') AS run_number_label
+  -- TODO restore this later
+  --, nullif(format('<a href="runs/%s/index.html">%s</a>', id, id), '<a href="runs//index.html"></a>') AS run_number_label
   , env_link AS environment_pivot
   , metric
   , unit AS unit_group
