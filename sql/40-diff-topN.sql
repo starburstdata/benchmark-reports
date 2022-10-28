@@ -133,9 +133,8 @@ SELECT
   , right_stddev AS right_mean_err
   , cast(right_stddev_pct AS decimal(5,2)) AS right_err_pct_label
   , '[' || format_metric(right_min, unit) || ', ' || format_metric(right_max, unit) || ']' AS right_range_label
-  -- TODO restore links after slugifying properties
-  --, format('<a href="runs/%s/index.html">%s</a>', left_run_id, left_run_id) AS left_run_id_label
-  --, format('<a href="runs/%s/index.html">%s</a>', right_run_id, right_run_id) AS right_run_id_label
+  , format('<a href="runs/%s/index.html">%s</a>', md5(env_left_id::text || '-' || left_properties::text), 'left details') AS left_details_label
+  , format('<a href="runs/%s/index.html">%s</a>', md5(env_right_id::text || '-' || right_properties::text), 'right details') AS right_details_label
 FROM diffs_ranked
 WHERE rownum < 6
 ORDER BY metric, rownum

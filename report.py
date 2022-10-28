@@ -173,14 +173,16 @@ def print_report(jinja_env, connection, sql, environments, output, basedir=None)
 def dump_envs_details(jinja_env, connection, sql, env_ids, basedir):
     """Dump env details for all selected environments"""
     logging.debug("Listing all environments in %s", env_ids)
-    env_details_sql = path.join(sql, "env_details.sql")
-    if not path.isfile(env_details_sql):
-        logging.warning(
-            "Query file %s does not exist, NOT dumping env details", env_details_sql
-        )
-        return
-    logging.info("Loading query from %s", env_details_sql)
-    env_details = read_env_details(env_details_sql)
+    env_details_sql = """
+SELECT
+    name
+  , value
+FROM environment_attributes
+WHERE environment_id = :id
+ORDER BY name, value
+;
+"""
+    env_details = EnvDetails(env_details_sql, "", "")
     env_template = jinja_env.get_template("env.jinja")
     for env_id in env_ids:
         dump_env_details_to_file(
@@ -204,7 +206,7 @@ def dump_env_details_to_file(env_template, prefix, details, connection, id):
 
 def dump_runs_details(jinja_env, connection, sql, env_ids, basedir):
     logging.debug("Dumping runs details for env_ids: %s", env_ids)
-    runs = get_run_ids(connection, env_ids)
+    runs = get_run_keys(connection, env_ids)
     sql_glob = path.join(glob.escape(sql), "run-*.sql")
     logging.info("Loading queries from %s", sql_glob)
     run_details_queries = [f for f in sorted(glob.glob(sql_glob))]
@@ -215,35 +217,66 @@ def dump_runs_details(jinja_env, connection, sql, env_ids, basedir):
     run_details = [read_run_details(f) for f in run_details_queries]
     run_template = jinja_env.get_template("run.jinja")
     table_template = jinja_env.get_template("table.jinja")
-    for i, run in enumerate(runs):
-        logging.debug("Dumping details for run %s out of %s, id: %s", i, len(runs), run)
+    i = 0
+    for key, ids in runs.items():
+        logging.debug("Dumping run details %s out of %s, ids: %s, key: %s", i, len(runs), ids, key)
         dump_run_details(
-            run_template, table_template, connection, run, run_details, basedir
+            run_template, table_template, connection, key, ids, run_details, basedir
         )
+        i = i + 1
 
 
-def get_run_ids(connection, env_ids):
+def get_run_keys(connection, env_ids):
     """Get run details for all selected environments"""
     logging.debug("Listing all runs from env_ids: %s", env_ids)
     runs_query = """
-SELECT id
-FROM benchmark_runs
-WHERE status = 'ENDED'
-AND environment_id = ANY(:env_ids)
-ORDER BY id
-;
+WITH
+attributes AS (
+    SELECT
+        benchmark_run_id
+      , array_agg(name || '=' || value ORDER BY name, value) AS tuples
+    FROM benchmark_runs_attributes
+    -- remove known properties that are not unique - are derived from others
+    WHERE name NOT IN ('statement')
+    GROUP BY 1
+)
+, variables AS (
+    SELECT
+        benchmark_run_id
+      , array_agg(name || '=' || value ORDER BY name, value) AS tuples
+    FROM benchmark_runs_variables
+    GROUP BY 1
+)
+, runs AS (
+    SELECT
+        runs.id
+      , runs.environment_id
+      , attrs.tuples || vars.tuples AS properties
+    FROM benchmark_runs runs
+    LEFT JOIN attributes attrs ON attrs.benchmark_run_id = runs.id
+    LEFT JOIN variables vars ON vars.benchmark_run_id = runs.id
+    WHERE runs.status = 'ENDED'
+    AND runs.environment_id = ANY(:env_ids)
+)
+SELECT
+    md5(environment_id::text || '-' || properties::text) AS key
+  , environment_id::text || '-' || properties::text AS raw_key
+  , array_agg(id) AS run_ids
+FROM runs
+GROUP BY environment_id, properties
+ORDER BY 1
 """
     result = connection.execute(text(runs_query), env_ids=env_ids)
-    return [row["id"] for row in result.fetchall()]
+    return {row["key"]: row["run_ids"] for row in result.fetchall()}
 
 
 def dump_run_details(
-    run_template, table_template, connection, run_id, run_details, basedir
+    run_template, table_template, connection, key, ids, run_details, basedir
 ):
-    basedir = path.join(basedir, "runs", str(run_id))
+    basedir = path.join(basedir, "runs", str(key))
     makedirs(basedir, exist_ok=True)
     for run_report in run_details:
-        result = connection.execute(text(run_report.query), id=run_id)
+        result = connection.execute(text(run_report.query), ids=ids)
         columns = result.keys()
         rows = save_attachments(basedir, columns, result.fetchall())
         figures = add_table(columns, rows, table_template)
@@ -252,7 +285,7 @@ def dump_run_details(
             run_report.contents += fig.to_html()
     # Create summary index.html for a whole run
     with open(path.join(basedir, "index.html"), "w") as f:
-        f.write(run_template.render(run_id=run_id, reports=run_details))
+        f.write(run_template.render(reports=run_details))
 
 
 def save_attachments(basedir, columns, rows):
@@ -262,7 +295,7 @@ def save_attachments(basedir, columns, rows):
         filtered_row = {}
         row_id = None
         for column in columns:
-            if not row_id and (column.endswith("_id") or column == "id"):
+            if column.endswith("_id") or column == "id":
                 row_id = row[column]
             cell = row[column]
             if column.endswith("_json"):
@@ -316,7 +349,6 @@ class Report:
 class EnvDetails:
     """Details regarding an environment"""
 
-    file: str
     results_file: str = field(init=False)
     query: str
     title: str
@@ -332,7 +364,6 @@ class EnvDetails:
 class RunDetails:
     """Details regarding a run"""
 
-    file: str
     contents: str = field(init=False)
     query: str
     title: str
@@ -357,14 +388,9 @@ def sha():
     return repo.head.object.hexsha
 
 
-def read_env_details(file):
-    desc, query, title = read_query(file)
-    return EnvDetails(file, query, title, desc)
-
-
 def read_run_details(file):
     desc, query, title = read_query(file)
-    return RunDetails(file, query, title, desc)
+    return RunDetails(query, title, desc)
 
 
 def read_report(basedir, file):

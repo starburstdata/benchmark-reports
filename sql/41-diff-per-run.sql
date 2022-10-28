@@ -111,7 +111,8 @@ attributes AS (
         run_devs.benchmark_name
       , run_devs.query_name
       , dense_rank() OVER (PARTITION BY cp.id ORDER BY run_devs.properties) AS props_num
-      , format('<a href="envs/%s/env-details.html">%s</a>', env.id, env.name) AS env_link
+      , env.id AS env_id
+      , env.name AS env_name
       , run_devs.name AS metric
       , run_devs.unit AS unit
       -- result
@@ -123,6 +124,7 @@ attributes AS (
       , 100 * run_devs.stddev / nullif(cast(run_devs.mean as real), 0) AS stddev_pct
       , run_devs.min
       , run_devs.max
+      , run_devs.properties AS all_properties
       , array_sort(array_subtraction(run_devs.properties::text[], cp.properties::text[])) AS run_properties
       , cp.id AS group_id
       , false AS is_header
@@ -136,7 +138,8 @@ attributes AS (
         NULL AS benchmark_name
       , NULL AS query_name
       , NULL AS props_num
-      , NULL AS env_link
+      , NULL AS env_id
+      , NULL AS env_name
       , NULL AS metric
       , NULL AS unit
       , NULL AS diff
@@ -146,6 +149,7 @@ attributes AS (
       , NULL AS stddev_pct
       , NULL AS min
       , NULL AS max
+      , array_sort(properties::text[]) AS all_properties
       , array_sort(properties::text[]) AS run_properties
       , id AS group_id
       , true AS is_header
@@ -155,9 +159,8 @@ SELECT
     benchmark_name
   , query_name
   , props_num AS props_id
-  -- TODO restore this later
-  --, nullif(format('<a href="runs/%s/index.html">%s</a>', id, id), '<a href="runs//index.html"></a>') AS run_number_label
-  , env_link AS environment_pivot
+  , nullif(format('<a href="runs/%s/index.html">%s</a>', md5(env_id::text || '-' || all_properties::text), 'details'), '<a href="runs//index.html"></a>') AS details_label
+  , format('<a href="envs/%s/env-details.html">%s</a>', env_id, env_name) AS environment_pivot
   , metric
   , unit AS unit_group
   , format_metric(diff, unit) AS diff_label
@@ -168,5 +171,5 @@ SELECT
   , '[' || format_metric(min, unit) || ', ' || format_metric(max, unit) || ']' AS range_label
   , run_properties AS run_properties_label
 FROM diffs
-ORDER BY group_id, is_header DESC, benchmark_name, query_name, run_properties, env_link
+ORDER BY group_id, is_header DESC, benchmark_name, query_name, run_properties, env_name
 ;
