@@ -1,6 +1,8 @@
 -- CPU time distribution among operators
 -- This graph presents what fraction of CPU time was consumed by particular operator, e.g. "ScanFilterAndProjectOperator, 0.68"
--- means that ScanFilterAndProjectOperator used 68% of the CPU time used when executing a query
+-- means that ScanFilterAndProjectOperator used 68% of the CPU time used by query.
+-- Observing the increase of CPU time fraction for one operator could mean that the another operator was optimized and
+-- its fraction was decreased (and as a side effect the fraction of the former one is higher).
 with runs as (
 	select
 	  runs.id as run_id
@@ -43,10 +45,11 @@ operators_stats as (
 select
 	environment_name as env_name_pivot,
 	operator_type,
-	round(avg(operator_cpu_time_fraction)::numeric, 2) as avg_operator_cpu_time_pct
+	round(avg(operator_cpu_time_fraction)::numeric, 2) as avg_operator_cpu_time_pct,
+	stddev(operator_cpu_time_fraction) as avg_operator_cpu_time_err
 from
 	operators_stats
 group by
 	environment_name, operator_type
 order by
-	avg(operator_cpu_time_fraction) desc
+	environment_name, avg(operator_cpu_time_fraction) desc, operator_type
