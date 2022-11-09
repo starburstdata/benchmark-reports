@@ -76,3 +76,21 @@ $$
     WHEN value < -5 THEN '▼'
   END || cast(value AS decimal(18,2))
 $$ LANGUAGE SQL;
+
+CREATE OR REPLACE FUNCTION public.duration_to_seconds(duration text)
+ RETURNS double precision
+ LANGUAGE sql
+AS $function$
+  SELECT
+    CASE
+	  WHEN right(duration, 2) = 'ns' THEN substr(duration, 1, length(duration) - 2)::float / 1000000000.0
+  	  WHEN right(duration, 2) = 'us' THEN substr(duration, 1, length(duration) - 2)::float / 1000000.0
+  	  WHEN right(duration, 2) = 'ms' THEN substr(duration, 1, length(duration) - 2)::float / 1000.0
+  	  WHEN right(duration, 1) = 's' THEN substr(duration, 1, length(duration) - 1)::float
+  	  WHEN right(duration, 1) = 'm' THEN substr(duration, 1, length(duration) - 1)::float * 60.0
+  	  WHEN right(duration, 1) = 'h'  THEN substr(duration, 1, length(duration) - 1)::float * 60.0 * 60.0
+  	  WHEN right(duration, 1) = 'd'  THEN substr(duration, 1, length(duration) - 1)::float * 60.0 * 60.0 * 24
+      else null
+  END
+$function$
+;
