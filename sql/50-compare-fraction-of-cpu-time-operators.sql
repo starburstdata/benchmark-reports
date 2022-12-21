@@ -37,7 +37,7 @@ operators_stats as (
 		query_info_id,
 		run_id,
 		operator_summary->>'operatorType' as operator_type,
-		sum(duration_to_seconds(operator_summary->>'addInputCpu') + duration_to_seconds(operator_summary->>'getOutputCpu') + duration_to_seconds(operator_summary->>'finishCpu')) / max(total_cpu_time) as operator_cpu_time_fraction
+		sum(duration_to_seconds(operator_summary->>'addInputCpu') + duration_to_seconds(operator_summary->>'getOutputCpu') + duration_to_seconds(operator_summary->>'finishCpu')) / nullif(max(total_cpu_time), 0) as operator_cpu_time_fraction
 	from
 	  operator_summaries
 	group by environment_name, benchmark, run_id, query, query_info_id, operator_type
