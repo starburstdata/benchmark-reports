@@ -122,7 +122,10 @@ run postgres \
     postgres:latest
 sleep 2
 
-benchto_version=0.21-SNAPSHOT
+benchto_version=0.22
+benchto_driver=$local_repo/io/trino/benchto/benchto-driver/$benchto_version/benchto-driver-$benchto_version-exec.jar
+# download the driver
+(cd "$TRINO_DIR" && ./mvnw -q -C dependency:get -Dtransitive=false -Dartifact=io.trino.benchto:benchto-driver:$benchto_version:jar:exec)
 benchto_image=trinodev/benchto-service
 benchto_host=localhost
 benchto_port=8081
@@ -332,15 +335,12 @@ YAML
 
     # run the benchmark
     echo "Starting the benchmark"
-    # TODO Trino needs to be built with JDK 17 but Benchto must be executed with JDK 8
-    # TODO avoid hardcoding the version
     (
         # application.yaml needs to be in current working directory
         # note there's no --timeLimit, which only makes sense for throughput tests
         cd "$RES_DIR"
-        ! command -V jenv >/dev/null || jenv local 1.8
-        JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home java -Xmx1g \
-            -jar "$local_repo/io/trino/benchto/benchto-driver/$benchto_version/benchto-driver-$benchto_version-exec.jar" \
+        java -Xmx1g \
+            -jar "$benchto_driver" \
             --sql "$TRINO_DIR"/testing/trino-benchmark-queries/src/main/resources/sql \
             --benchmarks "$TRINO_DIR"/testing/trino-benchto-benchmarks/src/main/resources/benchmarks \
             --activeBenchmarks=presto/tpch \
