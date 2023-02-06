@@ -150,8 +150,8 @@ def print_report(jinja_env, connection, sql, environments, output, basedir=None)
     logging.info("Resolving environment names to ids: %s", params)
     query = f"SELECT id, name FROM environments WHERE {' OR '.join(constraints)} ORDER BY name"
     rows = connection.execute(text(query), params).fetchall()
-    logging.info("Report for environment names: %s", [r["name"] for r in rows])
-    env_ids = [r["id"] for r in rows]
+    logging.info("Report for environment names: %s", [r.name for r in rows])
+    env_ids = [r.id for r in rows]
 
     logging.debug("Setup done, generating reports")
     reports = [read_report(basedir, f) for f in input_files]
@@ -193,8 +193,8 @@ def dump_envs_details(jinja_env, connection, sql, env_ids, basedir):
 
 
 def dump_env_details_to_file(env_template, prefix, details, connection, id):
-    result = connection.execute(text(details.query), id=id)
-    figures = add_table(result.keys(), result.fetchall(), env_template)
+    result = connection.execute(text(details.query), {"id": id})
+    figures = add_table(result.keys(), result.mappings(), env_template)
     # write table to a html file
     makedirs(prefix, exist_ok=True)
     with open(path.join(prefix, details.results_file), "w") as f:
@@ -233,7 +233,7 @@ AND environment_id = ANY(:env_ids)
 ORDER BY id
 ;
 """
-    result = connection.execute(text(runs_query), env_ids=env_ids)
+    result = connection.execute(text(runs_query), {"env_ids": env_ids})
     return [row["id"] for row in result.fetchall()]
 
 
@@ -243,7 +243,7 @@ def dump_run_details(
     basedir = path.join(basedir, "runs", str(run_id))
     makedirs(basedir, exist_ok=True)
     for run_report in run_details:
-        result = connection.execute(text(run_report.query), id=run_id)
+        result = connection.execute(text(run_report.query), {"id": run_id})
         columns = result.keys()
         rows = save_attachments(basedir, columns, result.fetchall())
         figures = add_table(columns, rows, table_template)
@@ -394,13 +394,13 @@ def add_figures(jinja_env, reports, connection, env_ids):
     table_template = jinja_env.get_template("table.jinja")
     for entry in reports:
         logging.debug("Fetching results for: %s", entry.file)
-        result = connection.execute(text(entry.query), env_ids=env_ids)
+        result = connection.execute(text(entry.query), {"env_ids": env_ids})
 
         if not entry.title:
             # ignore results, this is supposed to be a setup query
             continue
 
-        rows = result.fetchall()
+        rows = result.mappings()
         if entry.results_file:
             # write results to a csv file
             with open(entry.results_file, "w") as f:
@@ -445,7 +445,8 @@ def add_table(columns, rows, template, group=None):
         for key in columns
     ]
     rows = [
-        [table_entry(row[header["name"]], header["css_class"]) for header in headers]
+        [table_entry(row[header["name"]], header["css_class"])
+         for header in headers]
         for row in rows
     ]
     title = ""
@@ -665,10 +666,10 @@ class TestReport(unittest.TestCase):
             engine = create_engine(url.set(database="benchto"))
             with engine.connect() as connection:
 
-                connection.execute("LOAD 'auto_explain'")
-                connection.execute("SET auto_explain.log_min_duration = 0")
-                connection.execute("SET auto_explain.log_analyze = true")
-                connection.execute("SET auto_explain.log_buffers = true")
+                connection.execute(text("LOAD 'auto_explain'"))
+                connection.execute(text("SET auto_explain.log_min_duration = 0"))
+                connection.execute(text("SET auto_explain.log_analyze = true"))
+                connection.execute(text("SET auto_explain.log_buffers = true"))
 
                 with open("testdata/expected.html", "r") as f:
                     expected = f.read()
