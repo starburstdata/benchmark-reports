@@ -53,9 +53,11 @@ attributes AS (
 )
 , execution_devs AS (
     SELECT
-        runs.id AS run_id
+        runs.environment_id
+      , runs.properties
       , runs.benchmark_name
       , runs.query_name
+      , array_agg(runs.id) AS run_ids
       , m.metric_id
       , m.name
       , m.unit
@@ -70,14 +72,16 @@ attributes AS (
     JOIN executions ex ON ex.id = em.execution_id
     JOIN runs ON runs.id = ex.benchmark_run_id
     JOIN measurements m ON m.id = em.measurement_id
-    GROUP BY runs.id, runs.benchmark_name, runs.query_name, m.metric_id, m.name, m.unit, m.scope
+    GROUP BY runs.environment_id, runs.properties, runs.benchmark_name, runs.query_name, m.metric_id, m.name, m.unit, m.scope
 )
 , diffs AS (
     SELECT
-      format('<a href="envs/%s/env-details.html">%s</a>', env_left.id, env_left.name) AS left_env_link
-      , format('<a href="envs/%s/env-details.html">%s</a>', env_right.id, env_right.name) AS right_env_link
-      , run_left.id AS left_run_id
-      , run_right.id AS right_run_id
+        env_left.id AS env_left_id
+      , env_left.name AS env_left_name
+      , env_right.id AS env_right_id
+      , env_right.name AS env_right_name
+      , ex_left.properties AS left_properties
+      , ex_right.properties AS right_properties
       , ex_left.benchmark_name
       , ex_left.query_name
       , ex_left.name AS metric
@@ -97,12 +101,10 @@ attributes AS (
       , 100 * ex_right.stddev / nullif(cast(ex_right.mean as real), 0) AS right_stddev_pct
       , ex_right.min AS right_min
       , ex_right.max AS right_max
-    FROM runs run_left
-    JOIN runs run_right ON run_left.environment_id != run_right.environment_id AND run_left.properties = run_right.properties
-    JOIN execution_devs ex_left ON ex_left.run_id = run_left.id
-    JOIN execution_devs ex_right ON ex_right.run_id = run_right.id AND ex_left.metric_id = ex_right.metric_id
-    JOIN environments env_left ON env_left.id = run_left.environment_id
-    JOIN environments env_right ON env_right.id = run_right.environment_id
+    FROM execution_devs ex_left
+    JOIN execution_devs ex_right ON (ex_right.properties, ex_right.metric_id) = (ex_left.properties, ex_right.metric_id) AND ex_right.environment_id != ex_left.environment_id
+    JOIN environments env_left ON env_left.id = ex_left.environment_id
+    JOIN environments env_right ON env_right.id = ex_right.environment_id
     WHERE
     env_left.name < env_right.name
     AND (ex_left.mean NOT BETWEEN ex_right.low AND ex_right.high OR ex_right.mean NOT BETWEEN ex_left.low AND ex_left.high)
@@ -110,12 +112,12 @@ attributes AS (
 , diffs_ranked AS (
     SELECT
         *
-      , row_number() OVER (ORDER BY diff_pct DESC, left_env_link, right_env_link, left_run_id, right_run_id, benchmark_name, query_name, metric) AS rownum
+      , row_number() OVER (ORDER BY diff_pct DESC, env_left_id, env_right_id, left_properties, right_properties, benchmark_name, query_name, metric) AS rownum
     FROM diffs
 )
 SELECT
-    left_env_link AS left_environment
-  , right_env_link AS right_environment
+    format('<a href="envs/%s/env-details.html">%s</a>', env_left_id, env_left_name) AS left_environment
+  , format('<a href="envs/%s/env-details.html">%s</a>', env_right_id, env_right_name) AS right_environment
   , benchmark_name
   , query_name
   , metric
@@ -131,8 +133,8 @@ SELECT
   , right_stddev AS right_mean_err
   , cast(right_stddev_pct AS decimal(5,2)) AS right_err_pct_label
   , '[' || format_metric(right_min, unit) || ', ' || format_metric(right_max, unit) || ']' AS right_range_label
-  , format('<a href="runs/%s/index.html">%s</a>', left_run_id, left_run_id) AS left_run_id_label
-  , format('<a href="runs/%s/index.html">%s</a>', right_run_id, right_run_id) AS right_run_id_label
+  , format('<a href="runs/%s/index.html">%s</a>', md5(env_left_id::text || '-' || left_properties::text), 'left details') AS left_details_label
+  , format('<a href="runs/%s/index.html">%s</a>', md5(env_right_id::text || '-' || right_properties::text), 'right details') AS right_details_label
 FROM diffs_ranked
 WHERE rownum < 6
 ORDER BY metric, rownum

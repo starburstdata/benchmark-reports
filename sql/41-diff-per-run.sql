@@ -87,11 +87,11 @@ attributes AS (
 )
 , run_devs AS (
     SELECT
-        runs.id
-      , runs.environment_id AS environment_id
-      , runs.benchmark_name AS benchmark_name
-      , runs.query_name AS query_name
+        runs.environment_id AS environment_id
       , runs.properties AS properties
+      , array_agg(runs.id) AS run_ids
+      , runs.benchmark_name
+      , runs.query_name
       , m.metric_id
       , m.name
       , m.unit
@@ -104,15 +104,15 @@ attributes AS (
     JOIN runs ON runs.id = ex.benchmark_run_id
     JOIN measurements m ON m.id = em.measurement_id
     WHERE m.scope = 'driver'
-    GROUP BY runs.id, runs.environment_id, runs.properties, runs.benchmark_name, runs.query_name, m.metric_id, m.name, m.unit
+    GROUP BY runs.environment_id, runs.properties, runs.benchmark_name, runs.query_name, m.metric_id, m.name, m.unit
 )
 , diffs AS (
     SELECT
-        run_devs.id
-      , run_devs.benchmark_name
+        run_devs.benchmark_name
       , run_devs.query_name
       , dense_rank() OVER (PARTITION BY cp.id ORDER BY run_devs.properties) AS props_num
-      , format('<a href="envs/%s/env-details.html">%s</a>', env.id, env.name) AS env_link
+      , env.id AS env_id
+      , env.name AS env_name
       , run_devs.name AS metric
       , run_devs.unit AS unit
       -- result
@@ -124,21 +124,22 @@ attributes AS (
       , 100 * run_devs.stddev / nullif(cast(run_devs.mean as real), 0) AS stddev_pct
       , run_devs.min
       , run_devs.max
+      , run_devs.properties AS all_properties
       , array_sort(array_subtraction(run_devs.properties::text[], cp.properties::text[])) AS run_properties
       , cp.id AS group_id
       , false AS is_header
     FROM run_devs
     JOIN environments env ON env.id = run_devs.environment_id
-    LEFT JOIN common_properties cp ON run_devs.id = ANY(cp.run_ids)
+    LEFT JOIN common_properties cp ON run_devs.run_ids && cp.run_ids
     WINDOW w AS (PARTITION BY run_devs.properties ORDER BY env.name)
     UNION ALL
     SELECT
         -- TODO nulls or summary?
-        NULL AS id
-      , NULL AS benchmark_name
+        NULL AS benchmark_name
       , NULL AS query_name
       , NULL AS props_num
-      , NULL AS env_link
+      , NULL AS env_id
+      , NULL AS env_name
       , NULL AS metric
       , NULL AS unit
       , NULL AS diff
@@ -148,6 +149,7 @@ attributes AS (
       , NULL AS stddev_pct
       , NULL AS min
       , NULL AS max
+      , array_sort(properties::text[]) AS all_properties
       , array_sort(properties::text[]) AS run_properties
       , id AS group_id
       , true AS is_header
@@ -157,8 +159,8 @@ SELECT
     benchmark_name
   , query_name
   , props_num AS props_id
-  , nullif(format('<a href="runs/%s/index.html">%s</a>', id, id), '<a href="runs//index.html"></a>') AS run_number_label
-  , env_link AS environment_pivot
+  , nullif(format('<a href="runs/%s/index.html">%s</a>', md5(env_id::text || '-' || all_properties::text), 'details'), '<a href="runs//index.html"></a>') AS details_label
+  , format('<a href="envs/%s/env-details.html">%s</a>', env_id, env_name) AS environment_pivot
   , metric
   , unit AS unit_group
   , format_metric(diff, unit) AS diff_label
@@ -169,5 +171,5 @@ SELECT
   , '[' || format_metric(min, unit) || ', ' || format_metric(max, unit) || ']' AS range_label
   , run_properties AS run_properties_label
 FROM diffs
-ORDER BY group_id, is_header DESC, benchmark_name, query_name, run_properties, env_link
+ORDER BY group_id, is_header DESC, benchmark_name, query_name, run_properties, env_name
 ;
